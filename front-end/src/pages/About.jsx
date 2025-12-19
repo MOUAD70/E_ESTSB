@@ -7,7 +7,7 @@ const About = () => {
 
       <p className="mb-4 text-base sm:text-lg leading-relaxed">
         L'
-        <span className="font-bold">
+        <span className="font-bold text-sky-800">
           École Supérieure de Technologie de Sidi Bennour (ESTSB)
         </span>{" "}
         est un établissement public d'enseignement supérieur dédié à la

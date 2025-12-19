@@ -35,7 +35,7 @@ export function LoginForm({ className, ...props }) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email..."
+                  placeholder="Entrez votre email..."
                   className={cn(
                     "bg-white border-gray-300 h-11 text-gray-900 rounded-lg pl-5 focus:border-sky-600 focus:ring-1 focus:ring-sky-200 hover:border-sky-600 transition-colors"
                   )}
@@ -49,7 +49,7 @@ export function LoginForm({ className, ...props }) {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password..."
+                  placeholder="Entrez votre password..."
                   className={cn(
                     "bg-white border-gray-300 h-11 text-gray-900 rounded-lg pl-5 focus:border-sky-600 focus:ring-1 focus:ring-sky-200 hover:border-sky-600 transition-colors"
                   )}
