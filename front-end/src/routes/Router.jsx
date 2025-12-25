@@ -1,21 +1,21 @@
 import { createBrowserRouter } from "react-router-dom";
-import Home from "../pages/Home";
-import Register from "../pages/Register";
-import Login from "../pages/Login";
+import Home from "../pages/global/Home";
+import Contact from "../pages/global/Contact";
+import About from "../pages/global/About";
+import Login from "../pages/auth/Login";
+import Register from "../pages/auth/Register";
 import NotFound from "../pages/errors/NotFound";
 import {
   REGISTER_ROUTE,
   LOGIN_ROUTE,
   CONTACT_ROUTE,
   ABOUT_ROUTE,
+  UNAUTHORIZED_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
-import Contact from "../pages/Contact";
-import About from "../pages/About";
-
+import Unauthorized from "../pages/errors/Unauthorized";
 
 export const router = createBrowserRouter([
-  
   {
     element: <GlobalLayout />,
     children: [
@@ -40,6 +40,10 @@ export const router = createBrowserRouter([
         element: <About />,
       },
     ],
+  },
+  {
+    path: UNAUTHORIZED_ROUTE,
+    element: <Unauthorized />,
   },
   {
     path: "*",

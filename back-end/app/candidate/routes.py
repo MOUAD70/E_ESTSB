@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.user_models import Candidat, Filiere, Eligibilite
 
-candidate_bp = Blueprint('candidate', __name__)
+candidate_bp = Blueprint("candidate", __name__, url_prefix="/api/candidate")
 
 @candidate_bp.route('/apply', methods=['POST'])
 @jwt_required()

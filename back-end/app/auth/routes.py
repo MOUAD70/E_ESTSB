@@ -4,7 +4,7 @@ from app.models.user_models import User, Role
 from app.utils.helpers import hash_password, verify_password
 from flask_jwt_extended import create_access_token
 
-auth_bp = Blueprint("auth", __name__)
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
