@@ -1,5 +1,5 @@
 import { CopyCheck, Goal, Swords } from "lucide-react";
-import ESTSB_LOGO from "../../assets/images/ESTSb-LOGO.png"
+import ESTSB_LOGO from "../../assets/images/ESTSB-LOGO.png"
 
 const Home = () => {
   return (

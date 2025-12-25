@@ -35,6 +35,7 @@ const registerSchema = z.object({
   cin: z.string().min(6, "CIN invalide"),
   phone_num: z
   .string()
+  .regex(/^\d+$/, "Le numéro de téléphone doit contenir uniquement des chiffres")
   .min(10, "Le numéro de téléphone doit contenir au 10 chiffres")
 });
 

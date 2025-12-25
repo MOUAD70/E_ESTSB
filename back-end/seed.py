@@ -7,7 +7,6 @@ def seed_data():
     with app.app_context():
         print("Début du peuplement de la base de données...")
 
-        # 1. Création des Rôles
         roles_list = ["CANDIDAT", "EVALUATEUR", "ADMIN"]
         for r_name in roles_list:
             if not Role.query.filter_by(role_name=r_name).first():
@@ -15,7 +14,6 @@ def seed_data():
         
         db.session.flush()
 
-        # 2. Création des Filières (Bachelors)
         filieres_data = [
             {"nom": "Bachelor ISITW", "desc": "Ingénierie des Systèmes Informatiques et Technologies Web"},
             {"nom": "Bachelor CSTC", "desc": "Cyber Sécurité et Technologie Cloud"},
@@ -32,10 +30,8 @@ def seed_data():
                 db.session.add(obj)
             filiere_objs[f["nom"]] = obj
         
-        db.session.flush() # Pour garantir que tous les objets ont un ID
+        db.session.flush()
 
-        # 3. Définition des règles d'éligibilité (Mapping Dynamique)
-        # On définit ici quels types de diplômes et quelles branches ont accès à quel Bachelor
         eligibility_mapping = [
             {
                 "targets": ["Bachelor ISITW", "Bachelor CSTC"],
@@ -59,7 +55,6 @@ def seed_data():
                 f_id = filiere_objs[target_name].id
                 for d_type in rule["diplomes"]:
                     for b_name in rule["branches"]:
-                        # Vérification anti-doublon avant insertion
                         exists = Eligibilite.query.filter_by(
                             type_diplome_requis=d_type,
                             branche_source=b_name,

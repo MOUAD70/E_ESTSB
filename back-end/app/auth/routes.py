@@ -21,8 +21,12 @@ def register():
     if User.query.filter_by(cin=data["cin"]).first():
         return jsonify(msg="Ce CIN est déjà utilisé par un autre compte."), 400
     
+    if not data.get("phone_num"):
+        return jsonify(msg="Le numéro de téléphone est requis."), 400
+
     if User.query.filter_by(phone_num=data["phone_num"]).first():
         return jsonify(msg="Ce numéro de téléphone est déjà utilisé."), 400
+
 
     try:
         user = User(

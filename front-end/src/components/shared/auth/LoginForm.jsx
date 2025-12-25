@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 
 import { AuthContext } from "../../../context/AuthContext.jsx";
-import { REGISTER_ROUTE } from "../../../routes/Routes.jsx";
+import { ADMIN_DASHBOARD_ROUTE, CANDIDAT_APLY_ROUTE, REGISTER_ROUTE } from "../../../routes/Routes.jsx";
 
 import { cn } from "../../../lib/chadcn/utils.js";
 import { Button } from "../../ui/button.jsx";
@@ -23,6 +23,7 @@ import {
   FieldLabel,
 } from "../../ui/field.jsx";
 import { Input } from "../../ui/input.jsx";
+import { useFlash } from "../../../context/FlashContext.jsx";
 
 const loginSchema = z.object({
   email: z
@@ -40,6 +41,7 @@ export function LoginForm({ className, ...props }) {
   const { handleLogin } = useContext(AuthContext);
   const navigate = useNavigate();
   const [errorMsg, setErrorMsg] = useState("");
+  const { flash } = useFlash();
 
   const {
     register,
@@ -55,12 +57,17 @@ export function LoginForm({ className, ...props }) {
     try {
       const user = await handleLogin(data);
 
-      if (user.role === "ADMIN") navigate("/admin/dashboard");
-      else navigate("/candidate/apply");
+      if (user.role === "ADMIN") {
+        flash("Logged in successfully!", "success");
+        navigate(ADMIN_DASHBOARD_ROUTE);
+      } else {
+        flash("Logged in successfully!", "success");
+        navigate(CANDIDAT_APLY_ROUTE);
+      }
     } catch (err) {
       setErrorMsg(
         err.response?.data?.msg ||
-        "Erreur lors de la connexion. Veuillez réessayer."
+          "Erreur lors de la connexion. Veuillez réessayer."
       );
     }
   };
@@ -123,13 +130,20 @@ export function LoginForm({ className, ...props }) {
               )}
 
               <Field>
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
                   {isSubmitting ? "Connexion..." : "Se connecter"}
                 </Button>
 
                 <FieldDescription className="text-center mt-4">
                   Vous n’avez pas de compte ?{" "}
-                  <Link to={REGISTER_ROUTE} className="text-sky-600 hover:underline">
+                  <Link
+                    to={REGISTER_ROUTE}
+                    className="text-sky-600 hover:underline"
+                  >
                     Créer un compte
                   </Link>
                 </FieldDescription>
