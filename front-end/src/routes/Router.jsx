@@ -11,9 +11,15 @@ import {
   CONTACT_ROUTE,
   ABOUT_ROUTE,
   UNAUTHORIZED_ROUTE,
+  ADMIN_DASHBOARD_ROUTE,
+  CANDIDAT_APLY_ROUTE,
+  JURY_DASHBOARD_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
 import Unauthorized from "../pages/errors/Unauthorized";
+import { AdminDashboard } from "../pages/common/admin/AdminDashboard";
+import { CandidateDashboard } from "../pages/common/candidate/CandidateDashboard";
+import { JuryDashboard } from "../pages/common/jury/JuryDashboard";
 
 export const router = createBrowserRouter([
   {
@@ -32,14 +38,26 @@ export const router = createBrowserRouter([
         element: <Login />,
       },
       {
-        path: CONTACT_ROUTE,
-        element: <Contact />,
-      },
-      {
         path: ABOUT_ROUTE,
         element: <About />,
       },
+      {
+        path: CONTACT_ROUTE,
+        element: <Contact />,
+      },
     ],
+  },
+  {
+    path: ADMIN_DASHBOARD_ROUTE,
+    element: <AdminDashboard />,
+  },
+  {
+    path: JURY_DASHBOARD_ROUTE,
+    element: <JuryDashboard />,
+  },
+  {
+    path: CANDIDAT_APLY_ROUTE,
+    element: <CandidateDashboard />,
   },
   {
     path: UNAUTHORIZED_ROUTE,

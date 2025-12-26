@@ -58,10 +58,10 @@ export function LoginForm({ className, ...props }) {
       const user = await handleLogin(data);
 
       if (user.role === "ADMIN") {
-        flash("Logged in successfully!", "success");
+        flash("Connexion réussie !", "success");
         navigate(ADMIN_DASHBOARD_ROUTE);
       } else {
-        flash("Logged in successfully!", "success");
+        flash("Connexion réussie !", "success");
         navigate(CANDIDAT_APLY_ROUTE);
       }
     } catch (err) {

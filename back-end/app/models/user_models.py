@@ -32,7 +32,7 @@ class Evaluateur(db.Model):
 class Candidat(db.Model):
     __tablename__ = "candidats"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, unique=True)
     cne = db.Column(db.String(50), unique=True, nullable=False)
     t_diplome = db.Column(db.String(50))
     branche_diplome = db.Column(db.String(100))
@@ -44,7 +44,12 @@ class Candidat(db.Model):
     m_s4 = db.Column(db.Float)
     filiere_id = db.Column(db.Integer, db.ForeignKey("filieres.id"), nullable=True)
     
-    documents = db.relationship("Documents", backref="candidat", lazy=True)
+    documents = db.relationship(
+        "Documents",
+        backref="candidat",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
     scores_ai = db.relationship("ScoreAI", backref="candidat", lazy=True)
     notes_eval = db.relationship("NoteEvaluateur", backref="candidat", lazy=True)
 
@@ -62,6 +67,7 @@ class Documents(db.Model):
     bac = db.Column(db.String(255))
     rn_bac = db.Column(db.String(255))
     diplome = db.Column(db.String(255))
+    rn_diplome = db.Column(db.String(255))
     cin_file = db.Column(db.String(255))
     candidat_id = db.Column(db.Integer, db.ForeignKey("candidats.id"), nullable=False)
 

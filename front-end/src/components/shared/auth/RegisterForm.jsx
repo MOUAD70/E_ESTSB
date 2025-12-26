@@ -1,10 +1,9 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "../../../lib/chadcn/utils.js";
-
 import { AuthContext } from "../../../context/AuthContext.jsx";
 import { LOGIN_ROUTE } from "../../../routes/Routes.jsx";
 
@@ -23,6 +22,7 @@ import {
   FieldLabel,
 } from "../../ui/field.jsx";
 import { Input } from "../../ui/input.jsx";
+import { useFlash } from "../../../context/FlashContext.jsx";
 
 const registerSchema = z.object({
   nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -42,6 +42,8 @@ const registerSchema = z.object({
 export function RegisterForm({ className, ...props }) {
   const { handleRegister } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [errorMsg, setErrorMsg] = useState("");
+  const { flash } = useFlash();
 
   const {
     register,
@@ -57,9 +59,13 @@ export function RegisterForm({ className, ...props }) {
 
       await handleRegister(data);
 
+      flash("Compte créé avec succès !", "success");
       navigate(LOGIN_ROUTE);
     } catch (err) {
-      console.error(err.response?.data || err.message);
+      setErrorMsg(
+        err.response?.data?.msg ||
+          "Erreur lors de la creation. Veuillez réessayer."
+      );
     }
   };
 
@@ -179,6 +185,12 @@ export function RegisterForm({ className, ...props }) {
                   </FieldDescription>
                 )}
               </Field>
+
+              {errorMsg && (
+                <p className="text-red-600 text-sm -mt-2 bg-red-200 rounded-2xl px-4 py-2">
+                  {errorMsg}
+                </p>
+              )}
 
               <Field>
                 <Button
