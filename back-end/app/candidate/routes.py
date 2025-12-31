@@ -105,12 +105,19 @@ def select_filiere():
 def upload_docs():
     user_id = get_jwt_identity()
     candidate = Candidat.query.filter_by(user_id=user_id).first()
-    
+
     if not candidate:
         return jsonify(msg="Veuillez d'abord remplir vos informations académiques"), 400
 
     expected_files = ['bac', 'rn_bac', 'diplome', 'rn_diplome', 'cin_file']
-   
+
+    missing_files = [key for key in expected_files if key not in request.files]
+    if missing_files:
+        return jsonify(
+            msg="Tous les documents sont obligatoires",
+            fichiers_manquants=missing_files
+        ), 
+
     if not any(key in request.files for key in expected_files):
         return jsonify(msg="Aucun fichier envoyé"), 400
 
@@ -120,24 +127,28 @@ def upload_docs():
         db.session.add(doc_entry)
 
     try:
+        base_upload = current_app.config["UPLOAD_FOLDER"]
+        candidate_folder = os.path.join(base_upload, f"cand_{candidate.id}")
+        os.makedirs(candidate_folder, exist_ok=True)
+
         for key in expected_files:
             if key in request.files:
                 file = request.files[key]
+
                 if file and file.filename != '':
                     if not file.filename.lower().endswith('.pdf'):
                         return jsonify(msg=f"Le fichier {key} doit être un PDF"), 400
-                    
-                    filename = secure_filename(f"cand_{candidate.id}_{key}_{file.filename}")
-                    file_path = os.path.join(
-                        current_app.config["UPLOAD_FOLDER"],
-                        filename
-                    )
-                    
+
+                    filename = secure_filename(f"{key}.pdf")
+                    file_path = os.path.join(candidate_folder, filename)
+
                     file.save(file_path)
-                    setattr(doc_entry, key, file_path)
+
+                    # 💾 Store relative path in DB
+                    setattr(doc_entry, key, f"cand_{candidate.id}/{filename}")
 
         db.session.commit()
-        return jsonify(msg="Tous les documents ont été mis à jour avec succès"), 200
+        return jsonify(msg="Documents téléchargés avec succès"), 200
 
     except Exception as e:
         db.session.rollback()
