@@ -1,26 +1,15 @@
-import * as React from "react"
 import {
-  IconCamera,
   IconChartBar,
   IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
   IconUsers,
-} from "@tabler/icons-react"
+  IconFileAnalytics,
+  IconSettings,
+  IconUserShield,
+} from "@tabler/icons-react";
+import { NavLink } from "react-router-dom";
 
-import { NavDocuments } from "@/components/shared/global/nav-documents"
-import { NavMain } from "@/components/shared/global/nav-main"
-import { NavSecondary } from "@/components/shared/global/nav-secondary"
-import { NavUser } from "@/components/shared/global/nav-user"
+import { NavMain } from "@/components/shared/global/nav-main";
+import { NavUser } from "@/components/shared/global/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -29,126 +18,52 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+import { useContext } from "react";
+import { AuthContext } from "../../../context/AuthContext";
+import {
+  ADMIN_AI_SCORE_ROUTE,
+  ADMIN_DASHBOARD_ROUTE,
+  ADMIN_STATS_ROUTE,
+  ADMIN_USERS_ROUTE,
+} from "../../../routes/Routes";
+const adminNav = [
+  {
+    title: "Tableau de bord",
+    url: ADMIN_DASHBOARD_ROUTE,
+    icon: IconDashboard,
   },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "#",
-      icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
-    },
-  ],
-}
+  {
+    title: "Utilisateurs",
+    url: ADMIN_USERS_ROUTE,
+    icon: IconUsers,
+  },
+  {
+    title: "Statistiques des filières",
+    url: ADMIN_STATS_ROUTE,
+    icon: IconChartBar,
+  },
+  {
+    title: "Notes & Résultats",
+    url: ADMIN_AI_SCORE_ROUTE,
+    icon: IconFileAnalytics,
+  },
+  {
+    title: "Paramètres",
+    url: "/admin/settings",
+    icon: IconSettings,
+  },
+];
 
 export function AppSidebar({ ...props }) {
+  const { user } = useContext(AuthContext);
+
+  const sidebarUser = {
+    name: user ? `${user.nom} ${user.prenom}` : "—",
+    email: user?.email || "",
+  };
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -156,24 +71,24 @@ export function AppSidebar({ ...props }) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
+              className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
+              <NavLink to={ADMIN_DASHBOARD_ROUTE}>
+                <IconUserShield />
+                <span className="text-base font-semibold">E-ESTSB Admin</span>
+              </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={adminNav} />
       </SidebarContent>
+
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={sidebarUser} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

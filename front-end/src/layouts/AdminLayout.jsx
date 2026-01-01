@@ -1,14 +1,20 @@
-
 import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/shared/admin/app-sidebar";
+import { AppSidebar } from "@/components/shared/global/app-sidebar";
+import { SiteHeader } from "@/components/shared/global/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AdminLayout() {
   return (
-    <SidebarProvider>
-      <AppSidebar />
+    <SidebarProvider
+      style={{
+        "--sidebar-width": "calc(var(--spacing) * 72)",
+        "--header-height": "calc(var(--spacing) * 12)",
+      }}
+    >
+      <AppSidebar variant="inset" />
       <SidebarInset>
-        <Outlet />
+        <SiteHeader />
+        <Outlet/>
       </SidebarInset>
     </SidebarProvider>
   );

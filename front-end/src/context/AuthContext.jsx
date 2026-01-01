@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useCallback } from "react";
-import { loginUser, registerUser } from "../utils/services";
+import { services } from "../utils/services";
 
 export const AuthContext = createContext();
 
@@ -41,7 +41,7 @@ export const AuthContextProvider = ({ children }) => {
     setAuthLoading(true);
     setError(null);
     try {
-      const data = await loginUser(loginInfo);
+      const data = await services.auth.login(loginInfo);
       const payload = parseToken(data.access_token);
       if (!payload) throw new Error("Token invalide ou expiré");
 
@@ -61,7 +61,7 @@ export const AuthContextProvider = ({ children }) => {
     setAuthLoading(true);
     setError(null);
     try {
-      const data = await registerUser(registerInfo);
+      const data = await services.auth.register(registerInfo);
       return data;
     } catch (err) {
       setError(err.response?.data?.msg || err.message || "Erreur lors de la création de compte");

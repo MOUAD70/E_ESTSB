@@ -26,14 +26,6 @@ const NavBar = () => {
   return (
     <div className="relative  w-full">
       <FloatingNav navItems={navItems} />
-      <DummyContent />
-    </div>
-  );
-};
-const DummyContent = () => {
-  return (
-    <div className="mx-auto mt-30 w-full max-w-4xl relative rounded-2xl border border-neutral-200 dark:border-white/20 bg-white dark:bg-black overflow-hidden mb-5">
-      <Outlet />
     </div>
   );
 };

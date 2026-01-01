@@ -1,3 +1,4 @@
+import { Outlet } from "react-router-dom";
 import NavBar from "../components/shared/global/NavBar";
 import { BackgroundRippleEffect } from "../components/ui/aceternity/BackgroundRippleEffect";
 
@@ -8,6 +9,9 @@ const GlobalLayout = () => {
 
       <div className="relative z-10">
         <NavBar />
+        <div className="mx-auto mt-30 w-full max-w-4xl relative rounded-2xl border border-neutral-200 dark:border-white/20 bg-white dark:bg-black overflow-hidden mb-5">
+          <Outlet />
+        </div>
       </div>
     </div>
   );

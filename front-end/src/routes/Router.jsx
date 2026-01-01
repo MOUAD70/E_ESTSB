@@ -14,6 +14,7 @@ import {
   ADMIN_DASHBOARD_ROUTE,
   CANDIDAT_APPLY_ROUTE,
   EVALUATEUR_DASHBOARD_ROUTE,
+  ADMIN_USERS_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
 import Unauthorized from "../pages/errors/Unauthorized";
@@ -21,6 +22,8 @@ import CandidateApply from "../pages/common/candidate/CandidateApply";
 import EvaluateurDashboard from "../pages/common/evaluateur/EvaluateurDashboard";
 import ProtectedRoute from "./protectedRoutes/ProtectedRoute";
 import Dashboard from "../pages/common/admin/Dashboard";
+import AdminLayout from "../layouts/AdminLayout";
+import Users from "../pages/common/admin/Users";
 
 export const router = createBrowserRouter([
   {
@@ -49,12 +52,25 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    path: ADMIN_DASHBOARD_ROUTE,
-    element: (
-      <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <Dashboard />
-      </ProtectedRoute>
-    ),
+    element: <AdminLayout />,
+    children: [
+      {
+        path: ADMIN_DASHBOARD_ROUTE,
+        element: (
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: ADMIN_USERS_ROUTE,
+        element: (
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <Users />
+          </ProtectedRoute>
+        ),
+      },
+    ],
   },
   {
     path: EVALUATEUR_DASHBOARD_ROUTE,

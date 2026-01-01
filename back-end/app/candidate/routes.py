@@ -1,12 +1,11 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from werkzeug.utils import secure_filename
-import os, uuid, joblib
+import os
 
 from app import db
 from app.models.user_models import (
     Candidat, Filiere, Eligibilite,
-    Documents, ScoreAI, FinalScore
+    Documents, FinalScore
 )
 
 candidate_bp = Blueprint("candidate", __name__, url_prefix="/api/candidate")
@@ -25,7 +24,6 @@ def apply():
 
     if candidat:
         return jsonify(msg="Profil déjà enregistré. Modification non autorisée."), 400
-
 
     required = ["cne", "t_diplome", "branche_diplome", "bac_type", "moy_bac"]
     for f in required:
