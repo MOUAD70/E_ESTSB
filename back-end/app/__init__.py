@@ -30,9 +30,11 @@ def create_app(config_class="config.Config"):
     from app.auth.routes import auth_bp
     from app.candidate.routes import candidate_bp
     from app.admin.routes import admin_bp
+    from app.evaluateur.routes import evaluateur_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(candidate_bp, url_prefix="/api/candidate")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
+    app.register_blueprint(evaluateur_bp, url_prefix="/api/evaluateur")
 
     return app

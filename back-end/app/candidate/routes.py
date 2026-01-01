@@ -1,10 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from app import db
-from app.models.user_models import Candidat, Filiere, Eligibilite, Documents
-import os
 from werkzeug.utils import secure_filename
-from flask import current_app
+import os, uuid, joblib
+
+from app import db
+from app.models.user_models import (
+    Candidat, Filiere, Eligibilite,
+    Documents, ScoreAI, FinalScore
+)
 
 candidate_bp = Blueprint("candidate", __name__, url_prefix="/api/candidate")
 
@@ -13,143 +16,154 @@ candidate_bp = Blueprint("candidate", __name__, url_prefix="/api/candidate")
 def apply():
     claims = get_jwt()
     if claims.get("role") != "CANDIDAT":
-        return jsonify(msg="Accès refusé : Seuls les candidats peuvent soumettre ce formulaire"), 403
+        return jsonify(msg="Accès refusé"), 403
 
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
 
-    if not data:
-        return jsonify(msg="Aucune donnée fournie"), 400
+    candidat = Candidat.query.filter_by(user_id=user_id).first()
 
-    candidate = Candidat.query.filter_by(user_id=user_id).first()
-    if not candidate:
-        candidate = Candidat(user_id=user_id, cne=data.get('CNE'))
-        db.session.add(candidate)
-    
+    if candidat:
+        return jsonify(msg="Profil déjà enregistré. Modification non autorisée."), 400
+
+
+    required = ["cne", "t_diplome", "branche_diplome", "bac_type", "moy_bac"]
+    for f in required:
+        if f not in data:
+            return jsonify(msg=f"{f} est requis"), 400
+
     try:
-        candidate.t_diplome = data.get('t_diplome')
-        candidate.branche_diplome = data.get('branche_diplome')
-        candidate.bac_type = data.get('bac_type')
-        candidate.filiere_id = data.get('filiere_id')
-        
-        candidate.moy_bac = float(data.get('moy_bac', 0))
-        candidate.m_s1 = float(data.get('m_s1', 0))
-        candidate.m_s2 = float(data.get('m_s2', 0))
-        candidate.m_s3 = float(data.get('m_s3', 0))
-        candidate.m_s4 = float(data.get('m_s4', 0))
-        
+        if not candidat:
+            candidat = Candidat(
+                user_id=user_id,
+                cne=data["cne"]
+            )
+            db.session.add(candidat)
+
+        candidat.t_diplome = data["t_diplome"]
+        candidat.branche_diplome = data["branche_diplome"]
+        candidat.bac_type = data["bac_type"]
+        candidat.moy_bac = float(data["moy_bac"])
+        candidat.m_s1 = float(data.get("m_s1", 0))
+        candidat.m_s2 = float(data.get("m_s2", 0))
+        candidat.m_s3 = float(data.get("m_s3", 0))
+        candidat.m_s4 = float(data.get("m_s4", 0))
+        candidat.status = "PENDING"
+
         db.session.commit()
-    except ValueError as e:
-        return jsonify(msg=str(e)), 400
+        return jsonify(msg="Profil académique enregistré")
+
     except Exception as e:
         db.session.rollback()
-        return jsonify(msg="Une erreur est survenue lors de l'enregistrement des données"), 500
-
-    return jsonify(msg="Données académiques soumises avec succès"), 200
+        return jsonify(msg=str(e)), 400
 
 
 
 @candidate_bp.route('/eligible-programs', methods=['GET'])
 @jwt_required()
-def get_eligible_programs():
+def eligible_programs():
     user_id = get_jwt_identity()
-    candidate = Candidat.query.filter_by(user_id=user_id).first()
+    candidat = Candidat.query.filter_by(user_id=user_id).first()
 
-    if not candidate or not candidate.branche_diplome or not candidate.t_diplome:
-        return jsonify(msg="Veuillez d'abord compléter vos informations académiques"), 400
+    if not candidat:
+        return jsonify(msg="Profil manquant"), 400
 
     programmes = db.session.query(Filiere).join(Eligibilite).filter(
-        Eligibilite.type_diplome_requis == candidate.t_diplome,
-        Eligibilite.branche_source == candidate.branche_diplome
+        Eligibilite.type_diplome_requis == candidat.t_diplome,
+        Eligibilite.branche_source == candidat.branche_diplome
     ).all()
 
-    return jsonify([{
-        "id": p.id,
-        "nom_filiere": p.nom_filiere
-    } for p in programmes]), 200
-
+    return jsonify([
+        {"id": f.id, "nom_filiere": f.nom_filiere}
+        for f in programmes
+    ])
 
 
 @candidate_bp.route('/select-filiere', methods=['POST'])
 @jwt_required()
 def select_filiere():
     user_id = get_jwt_identity()
-    data = request.get_json()
-    filiere_id_choisie = data.get('filiere_id')
+    data = request.get_json() or {}
 
-    candidate = Candidat.query.filter_by(user_id=user_id).first()
-    
-    is_eligible = db.session.query(Eligibilite).filter_by(
-        filiere_id=filiere_id_choisie,
-        type_diplome_requis=candidate.t_diplome,
-        branche_source=candidate.branche_diplome
+    candidat = Candidat.query.filter_by(user_id=user_id).first()
+    if not candidat:
+        return jsonify(msg="Profil introuvable"), 404
+
+    if candidat.filiere_id:
+        return jsonify(msg="Filière déjà choisie"), 400
+
+    eligible = Eligibilite.query.filter_by(
+        filiere_id=data.get("filiere_id"),
+        type_diplome_requis=candidat.t_diplome,
+        branche_source=candidat.branche_diplome
     ).first()
 
-    if not candidate:
-        return jsonify(msg="Candidat introuvable"), 404
+    if not eligible:
+        return jsonify(msg="Non éligible à cette filière"), 403
 
-    if not is_eligible:
-        return jsonify(msg="Action refusée : Vous n'êtes pas éligible pour cette filière"), 403
+    candidat.filiere_id = data["filiere_id"]
+    candidat.status = "SUBMITTED"
+    db.session.commit()
 
-    try:
-        candidate.filiere_id = filiere_id_choisie
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return jsonify(msg="Erreur lors de l'enregistrement du choix"), 500
-
-    return jsonify(msg="Filière choisie avec succès"), 200
+    return jsonify(msg="Filière sélectionnée avec succès")
 
 @candidate_bp.route('/upload-docs', methods=['POST'])
 @jwt_required()
 def upload_docs():
     user_id = get_jwt_identity()
-    candidate = Candidat.query.filter_by(user_id=user_id).first()
+    candidat = Candidat.query.filter_by(user_id=user_id).first()
 
-    if not candidate:
-        return jsonify(msg="Veuillez d'abord remplir vos informations académiques"), 400
+    if not candidat:
+        return jsonify(msg="Profil requis"), 400
 
-    expected_files = ['bac', 'rn_bac', 'diplome', 'rn_diplome', 'cin_file']
+    if candidat.documents:
+        return jsonify(msg="Documents déjà soumis"), 400
 
-    missing_files = [key for key in expected_files if key not in request.files]
-    if missing_files:
-        return jsonify(
-            msg="Tous les documents sont obligatoires",
-            fichiers_manquants=missing_files
-        ), 
-
-    if not any(key in request.files for key in expected_files):
-        return jsonify(msg="Aucun fichier envoyé"), 400
-
-    doc_entry = Documents.query.filter_by(candidat_id=candidate.id).first()
-    if not doc_entry:
-        doc_entry = Documents(candidat_id=candidate.id)
-        db.session.add(doc_entry)
+    expected = ['bac', 'rn_bac', 'diplome', 'rn_diplome', 'cin_file']
+    missing = [f for f in expected if f not in request.files]
+    if missing:
+        return jsonify(msg="Documents manquants", missing=missing), 400
 
     try:
-        base_upload = current_app.config["UPLOAD_FOLDER"]
-        candidate_folder = os.path.join(base_upload, f"cand_{candidate.id}")
-        os.makedirs(candidate_folder, exist_ok=True)
+        doc = Documents(candidat_id=candidat.id)
+        base = current_app.config["UPLOAD_FOLDER"]
+        folder = os.path.join(base, f"cand_{candidat.id}")
+        os.makedirs(folder, exist_ok=True)
 
-        for key in expected_files:
-            if key in request.files:
-                file = request.files[key]
+        for f in expected:
+            file = request.files[f]
+            if not file.filename.lower().endswith(".pdf"):
+                return jsonify(msg=f"{f} doit être un PDF"), 400
 
-                if file and file.filename != '':
-                    if not file.filename.lower().endswith('.pdf'):
-                        return jsonify(msg=f"Le fichier {key} doit être un PDF"), 400
+            path = os.path.join(folder, f"{f}.pdf")
+            file.save(path)
+            setattr(doc, f, f"cand_{candidat.id}/{f}.pdf")
 
-                    filename = secure_filename(f"{key}.pdf")
-                    file_path = os.path.join(candidate_folder, filename)
-
-                    file.save(file_path)
-
-                    # 💾 Store relative path in DB
-                    setattr(doc_entry, key, f"cand_{candidate.id}/{filename}")
-
+        db.session.add(doc)
         db.session.commit()
-        return jsonify(msg="Documents téléchargés avec succès"), 200
+        return jsonify(msg="Documents envoyés avec succès")
 
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        return jsonify(msg="Erreur serveur lors de l'enregistrement des fichiers"), 500
+        return jsonify(msg="Erreur lors du téléchargement"), 500
+
+
+@candidate_bp.route('/result', methods=['GET'])
+@jwt_required()
+def view_result():
+    user_id = get_jwt_identity()
+    candidat = Candidat.query.filter_by(user_id=user_id).first()
+
+    result = FinalScore.query.filter_by(candidat_id=candidat.id).first()
+    if not result:
+        return jsonify(msg="Résultat non disponible"), 404
+    
+    if not candidat:
+        return jsonify(msg="Profil manquant"), 400
+
+    return jsonify(
+        note_ai=result.note_ai,
+        note_jury=result.note_jury,
+        note_final=result.note_final,
+        created_at=result.created_at
+    )
