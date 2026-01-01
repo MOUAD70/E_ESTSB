@@ -15,6 +15,7 @@ import {
   CANDIDAT_APPLY_ROUTE,
   EVALUATEUR_DASHBOARD_ROUTE,
   ADMIN_USERS_ROUTE,
+  ADMIN_FINAL_SCORES_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
 import Unauthorized from "../pages/errors/Unauthorized";
@@ -24,6 +25,7 @@ import ProtectedRoute from "./protectedRoutes/ProtectedRoute";
 import Dashboard from "../pages/common/admin/Dashboard";
 import AdminLayout from "../layouts/AdminLayout";
 import Users from "../pages/common/admin/Users";
+import Results from "../pages/common/admin/Results";
 
 export const router = createBrowserRouter([
   {
@@ -52,23 +54,23 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <AdminLayout />,
+    element: (
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <AdminLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: ADMIN_DASHBOARD_ROUTE,
-        element: (
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <Dashboard />
-          </ProtectedRoute>
-        ),
+        element: <Dashboard />,
       },
       {
         path: ADMIN_USERS_ROUTE,
-        element: (
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <Users />
-          </ProtectedRoute>
-        ),
+        element: <Users />,
+      },
+      {
+        path: ADMIN_FINAL_SCORES_ROUTE,
+        element: <Results />,
       },
     ],
   },

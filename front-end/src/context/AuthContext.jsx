@@ -11,10 +11,15 @@ export const AuthContextProvider = ({ children }) => {
 
   const parseToken = (token) => {
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        return null;
-      }
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64.padEnd(
+        base64.length + ((4 - (base64.length % 4)) % 4),
+        "="
+      );
+      const payload = JSON.parse(atob(padded));
+
+      if (payload.exp && payload.exp * 1000 < Date.now()) return null;
       return payload;
     } catch {
       return null;
@@ -50,7 +55,9 @@ export const AuthContextProvider = ({ children }) => {
 
       return data;
     } catch (err) {
-      setError(err.response?.data?.msg || err.message || "Erreur lors de la connexion");
+      setError(
+        err.response?.data?.msg || err.message || "Erreur lors de la connexion"
+      );
       throw err;
     } finally {
       setAuthLoading(false);
@@ -64,7 +71,11 @@ export const AuthContextProvider = ({ children }) => {
       const data = await services.auth.register(registerInfo);
       return data;
     } catch (err) {
-      setError(err.response?.data?.msg || err.message || "Erreur lors de la création de compte");
+      setError(
+        err.response?.data?.msg ||
+          err.message ||
+          "Erreur lors de la création de compte"
+      );
       throw err;
     } finally {
       setAuthLoading(false);

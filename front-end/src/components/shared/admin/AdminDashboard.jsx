@@ -6,7 +6,7 @@ import { AdminKpiCards } from "@/components/shared/admin/AdminKpiCards";
 import { ChartBarLabel } from "@/components/ui/charts/BarChart";
 import { BarChartAiFinal } from "@/components/ui/charts/GroupedBarChart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { services } from "../../../utils/services";
+import { services } from "@/utils/services";
 
 const AdminDashboard = () => {
   const [overview, setOverview] = useState(null);

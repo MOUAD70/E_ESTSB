@@ -57,5 +57,11 @@ export const services = {
       const { data } = await axiosClient.post("/admin/final-scores/compute");
       return data;
     },
+
+    // GET FINAL SCORE
+    getFinalScores: async () => {
+      const { data } = await axiosClient.get("/admin/final-scores");
+      return data;
+    },
   },
 };

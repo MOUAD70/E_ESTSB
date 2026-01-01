@@ -23,9 +23,8 @@ import {
 import { useContext } from "react";
 import { AuthContext } from "../../../context/AuthContext";
 import {
-  ADMIN_AI_SCORE_ROUTE,
   ADMIN_DASHBOARD_ROUTE,
-  ADMIN_STATS_ROUTE,
+  ADMIN_FINAL_SCORES_ROUTE,
   ADMIN_USERS_ROUTE,
 } from "../../../routes/Routes";
 const adminNav = [
@@ -40,13 +39,8 @@ const adminNav = [
     icon: IconUsers,
   },
   {
-    title: "Statistiques des filières",
-    url: ADMIN_STATS_ROUTE,
-    icon: IconChartBar,
-  },
-  {
     title: "Notes & Résultats",
-    url: ADMIN_AI_SCORE_ROUTE,
+    url: ADMIN_FINAL_SCORES_ROUTE,
     icon: IconFileAnalytics,
   },
   {

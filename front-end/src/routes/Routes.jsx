@@ -13,8 +13,6 @@ export const CONTACT_ROUTE = "/contact";
 // ADMIN ROUTES
 export const ADMIN_DASHBOARD_ROUTE = "/admin/dashboard";
 export const ADMIN_USERS_ROUTE = "/admin/users";
-export const ADMIN_STATS_ROUTE = "/admin/stats";
-export const ADMIN_AI_SCORE_ROUTE = "/admin/ai-score";
 export const ADMIN_FINAL_SCORES_ROUTE = "/admin/final-scores";
 
 // JURY
