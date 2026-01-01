@@ -14,7 +14,7 @@ export const CONTACT_ROUTE = "/contact";
 export const ADMIN_DASHBOARD_ROUTE = "/admin/dashboard";
 
 // JURY
-export const JURY_DASHBOARD_ROUTE = "/jury/dashboard";
+export const EVALUATEUR_DASHBOARD_ROUTE = "/evaluateur/dashboard";
 
 // CANDIDAT ROUTES
-export const CANDIDAT_APLY_ROUTE = "/candidate/apply";
+export const CANDIDAT_APPLY_ROUTE = "/candidate/apply";

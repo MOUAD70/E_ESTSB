@@ -7,8 +7,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext.jsx";
 import {
   ADMIN_DASHBOARD_ROUTE,
-  CANDIDAT_APLY_ROUTE,
-  JURY_DASHBOARD_ROUTE,
+  CANDIDAT_APPLY_ROUTE,
+  EVALUATEUR_DASHBOARD_ROUTE,
   REGISTER_ROUTE,
 } from "../../../routes/Routes.jsx";
 
@@ -67,10 +67,10 @@ export function LoginForm({ className, ...props }) {
         navigate(ADMIN_DASHBOARD_ROUTE);
       } else if (user.role === "EVALUATEUR") {
         flash("Connexion réussie !", "success");
-        navigate(JURY_DASHBOARD_ROUTE);
+        navigate(EVALUATEUR_DASHBOARD_ROUTE);
       } else {
         flash("Connexion réussie !", "success");
-        navigate(CANDIDAT_APLY_ROUTE);
+        navigate(CANDIDAT_APPLY_ROUTE);
       }
     } catch (err) {
       setErrorMsg(

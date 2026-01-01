@@ -4,7 +4,6 @@ const axiosClient = axios.create({
   baseURL: "http://localhost:5000/api",
 });
 
-export default axiosClient;
 
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -13,3 +12,5 @@ axiosClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+export default axiosClient;

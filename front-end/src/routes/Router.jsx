@@ -12,14 +12,15 @@ import {
   ABOUT_ROUTE,
   UNAUTHORIZED_ROUTE,
   ADMIN_DASHBOARD_ROUTE,
-  CANDIDAT_APLY_ROUTE,
-  JURY_DASHBOARD_ROUTE,
+  CANDIDAT_APPLY_ROUTE,
+  EVALUATEUR_DASHBOARD_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
 import Unauthorized from "../pages/errors/Unauthorized";
-import { AdminDashboard } from "../pages/common/admin/AdminDashboard";
-import { CandidateDashboard } from "../pages/common/candidate/CandidateDashboard";
-import { JuryDashboard } from "../pages/common/jury/JuryDashboard";
+import CandidateApply from "../pages/common/candidate/CandidateApply";
+import EvaluateurDashboard from "../pages/common/evaluateur/EvaluateurDashboard";
+import ProtectedRoute from "./protectedRoutes/ProtectedRoute";
+import Dashboard from "../pages/common/admin/Dashboard";
 
 export const router = createBrowserRouter([
   {
@@ -49,15 +50,27 @@ export const router = createBrowserRouter([
   },
   {
     path: ADMIN_DASHBOARD_ROUTE,
-    element: <AdminDashboard />,
+    element: (
+      <ProtectedRoute allowedRoles={["ADMIN"]}>
+        <Dashboard />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: JURY_DASHBOARD_ROUTE,
-    element: <JuryDashboard />,
+    path: EVALUATEUR_DASHBOARD_ROUTE,
+    element: (
+      <ProtectedRoute allowedRoles={["EVALUATEUR"]}>
+        <EvaluateurDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
-    path: CANDIDAT_APLY_ROUTE,
-    element: <CandidateDashboard />,
+    path: CANDIDAT_APPLY_ROUTE,
+    element: (
+      <ProtectedRoute allowedRoles={["CANDIDAT"]}>
+        <CandidateApply />
+      </ProtectedRoute>
+    ),
   },
   {
     path: UNAUTHORIZED_ROUTE,

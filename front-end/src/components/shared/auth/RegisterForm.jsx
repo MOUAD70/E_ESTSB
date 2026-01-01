@@ -30,7 +30,7 @@ const registerSchema = z.object({
   email: z.string().email("Email invalide"),
   password: z
     .string()
-    .min(6, "Le mot de passe doit contenir au moins 6 caractères")
+    .min(8, "Le mot de passe doit contenir au moins 6 caractères")
     .max(20, "Le mot de passe ne peut dépasser 20 caractères"),
   cin: z.string().min(6, "CIN invalide"),
   phone_num: z
