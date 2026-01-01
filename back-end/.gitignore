@@ -1,6 +1,8 @@
 # .gitignore
 .env
 uploads/
+uploads/cand_3/
+uploads/cand_4/
 __pycache__/
 scripts/data/candidates_synthetic.csv
 scripts/data/
