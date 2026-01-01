@@ -2,3 +2,7 @@
 .env
 uploads/
 __pycache__/
+scripts/data/candidates_synthetic.csv
+scripts/data/
+scripts/encoders
+scripts/encoders/rf_pipeline.pkl
