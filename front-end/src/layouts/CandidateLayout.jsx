@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/shared/global/app-sidebar";
 import { SiteHeader } from "@/components/shared/global/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-const AdminLayout = () => {
+const CandidateLayout = () => {
   return (
     <SidebarProvider
       style={{
@@ -20,4 +20,4 @@ const AdminLayout = () => {
   );
 };
 
-export default AdminLayout;
+export default CandidateLayout;

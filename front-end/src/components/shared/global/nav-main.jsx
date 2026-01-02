@@ -15,14 +15,17 @@ export function NavMain({ items }) {
 
         <SidebarMenu>
           {items.map((item) => (
-            <Link to={item.url}>
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton tooltip={item.title}>
+            <SidebarMenuItem key={item.title}>
+              <Link to={item.url}>
+                <SidebarMenuButton
+                  className="cursor-pointer"
+                  tooltip={item.title}
+                >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
-            </Link>
+              </Link>
+            </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarGroupContent>

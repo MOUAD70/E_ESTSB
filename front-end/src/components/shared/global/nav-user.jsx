@@ -1,31 +1,37 @@
-import {
-  IconDotsVertical,
-  IconLogout,
-} from "@tabler/icons-react"
+import { IconDotsVertical, IconLogout } from "@tabler/icons-react";
+import { useNavigate } from "react-router-dom";
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+import { useContext } from "react";
+import { AuthContext } from "../../../context/AuthContext";
+import { LOGIN_ROUTE } from "../../../routes/Routes";
 
 export function NavUser({ user }) {
-  const { isMobile } = useSidebar()
+  const { isMobile } = useSidebar();
+  const { handleLogout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const onLogout = async () => {
+    try {
+      await Promise.resolve(handleLogout?.());
+    } finally {
+      navigate(LOGIN_ROUTE, { replace: true });
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -34,11 +40,13 @@ export function NavUser({ user }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer"
             >
               <Avatar className="h-8 w-8 rounded-lg grayscale">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">{user.name[0].toUpperCase()}</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {user.name[0].toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -59,7 +67,9 @@ export function NavUser({ user }) {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">{user.name[0].toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {user.name[0].toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
@@ -70,7 +80,13 @@ export function NavUser({ user }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                onLogout();
+              }}
+              className="cursor-pointer"
+            >
               <IconLogout />
               Log out
             </DropdownMenuItem>
@@ -78,5 +94,5 @@ export function NavUser({ user }) {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

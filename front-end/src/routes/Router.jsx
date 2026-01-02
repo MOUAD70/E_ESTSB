@@ -16,16 +16,23 @@ import {
   EVALUATEUR_DASHBOARD_ROUTE,
   ADMIN_USERS_ROUTE,
   ADMIN_FINAL_SCORES_ROUTE,
+  CANDIDATE_PROGRAMS_ROUTE,
+  CANDIDATE_UPLOAD_DOCS_ROUTE,
+  CANDIDATE_RESULT_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
 import Unauthorized from "../pages/errors/Unauthorized";
-import CandidateApply from "../pages/common/candidate/CandidateApply";
 import EvaluateurDashboard from "../pages/common/evaluateur/EvaluateurDashboard";
 import ProtectedRoute from "./protectedRoutes/ProtectedRoute";
 import Dashboard from "../pages/common/admin/Dashboard";
 import AdminLayout from "../layouts/AdminLayout";
 import Users from "../pages/common/admin/Users";
 import Results from "../pages/common/admin/Results";
+import Apply from "../pages/common/candidate/Apply";
+import CandidateLayout from "../layouts/CandidateLayout";
+import Programs from "../pages/common/candidate/Programs";
+import AddDocuments from "../pages/common/candidate/AddDocuments";
+import CResults from "../pages/common/candidate/CResults";
 
 export const router = createBrowserRouter([
   {
@@ -83,12 +90,30 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: CANDIDAT_APPLY_ROUTE,
     element: (
       <ProtectedRoute allowedRoles={["CANDIDAT"]}>
-        <CandidateApply />
+        <CandidateLayout/>
       </ProtectedRoute>
     ),
+    children: [
+      {
+        path: CANDIDAT_APPLY_ROUTE,
+        element: <Apply/>
+      },
+      {
+        path: CANDIDATE_PROGRAMS_ROUTE,
+        element: <Programs/>
+      },
+      {
+        path: CANDIDATE_UPLOAD_DOCS_ROUTE,
+        element: <AddDocuments/>
+      },
+      {
+        path: CANDIDATE_RESULT_ROUTE,
+        element: <CResults/>
+      }
+    ]
+
   },
   {
     path: UNAUTHORIZED_ROUTE,

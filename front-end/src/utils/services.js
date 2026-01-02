@@ -64,4 +64,43 @@ export const services = {
       return data;
     },
   },
+  candidate: {
+    apply: async (payload) => {
+      const { data } = await axiosClient.post("/candidate/apply", payload);
+      return data;
+    },
+
+    eligiblePrograms: async () => {
+      const { data } = await axiosClient.get("/candidate/eligible-programs");
+      return data;
+    },
+
+    selectFiliere: async (filiere_id) => {
+      const { data } = await axiosClient.post("/candidate/select-filiere", {
+        filiere_id,
+      });
+      return data;
+    },
+
+    uploadDocs: async (formData) => {
+      const { data } = await axiosClient.post(
+        "/candidate/upload-docs",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return data;
+    },
+
+    result: async () => {
+      const { data } = await axiosClient.get("/candidate/result");
+      return data;
+    },
+
+    getProfile: async () => {
+    const { data } = await axiosClient.get("/candidate/profile");
+    return data;
+  },
+  },
 };

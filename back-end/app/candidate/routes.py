@@ -10,9 +10,16 @@ from app.models.user_models import (
 
 candidate_bp = Blueprint("candidate", __name__, url_prefix="/api/candidate")
 
+def candidate_required():
+    claims = get_jwt()
+    return claims.get("role") == "CANDIDAT"
+
 @candidate_bp.route('/apply', methods=['POST'])
 @jwt_required()
 def apply():
+    if not candidate_required():
+        return jsonify(msg="Accès refusé"), 403
+    
     claims = get_jwt()
     if claims.get("role") != "CANDIDAT":
         return jsonify(msg="Accès refusé"), 403
@@ -60,6 +67,8 @@ def apply():
 @candidate_bp.route('/eligible-programs', methods=['GET'])
 @jwt_required()
 def eligible_programs():
+    if not candidate_required():
+        return jsonify(msg="Accès refusé"), 403
     user_id = get_jwt_identity()
     candidat = Candidat.query.filter_by(user_id=user_id).first()
 
@@ -80,6 +89,8 @@ def eligible_programs():
 @candidate_bp.route('/select-filiere', methods=['POST'])
 @jwt_required()
 def select_filiere():
+    if not candidate_required():
+        return jsonify(msg="Accès refusé"), 403
     user_id = get_jwt_identity()
     data = request.get_json() or {}
 
@@ -108,6 +119,8 @@ def select_filiere():
 @candidate_bp.route('/upload-docs', methods=['POST'])
 @jwt_required()
 def upload_docs():
+    if not candidate_required():
+        return jsonify(msg="Accès refusé"), 403
     user_id = get_jwt_identity()
     candidat = Candidat.query.filter_by(user_id=user_id).first()
 
@@ -149,19 +162,47 @@ def upload_docs():
 @candidate_bp.route('/result', methods=['GET'])
 @jwt_required()
 def view_result():
+    if not candidate_required():
+        return jsonify(msg="Accès refusé"), 403
+    claims = get_jwt()
+    if claims.get("role") != "CANDIDAT":
+        return jsonify(msg="Accès refusé"), 403
+
     user_id = get_jwt_identity()
     candidat = Candidat.query.filter_by(user_id=user_id).first()
+
+    if not candidat:
+        return jsonify(msg="Profil manquant"), 400
 
     result = FinalScore.query.filter_by(candidat_id=candidat.id).first()
     if not result:
         return jsonify(msg="Résultat non disponible"), 404
-    
-    if not candidat:
-        return jsonify(msg="Profil manquant"), 400
 
     return jsonify(
         note_ai=result.note_ai,
         note_jury=result.note_jury,
         note_final=result.note_final,
         created_at=result.created_at
+    ), 200
+
+
+# in candidate routes
+
+@candidate_bp.route("/profile", methods=["GET"])
+@jwt_required()
+def get_profile():
+    claims = get_jwt()
+    if claims.get("role") != "CANDIDAT":
+        return jsonify(msg="Accès refusé"), 403
+
+    user_id = get_jwt_identity()
+    candidat = Candidat.query.filter_by(user_id=user_id).first()
+    if not candidat:
+        return jsonify(msg="Profil manquant"), 404
+
+    return jsonify(
+        id=candidat.id,
+        status=candidat.status,
+        filiere_id=candidat.filiere_id,
+        documents_submitted=bool(candidat.documents),  # ✅ IMPORTANT
     )
