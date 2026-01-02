@@ -20,6 +20,85 @@ def get_evaluateur_or_404(user_id: int):
     return ev
 
 
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+
+from app import db
+from app.models.user_models import (
+    User, Evaluateur, Candidat, NoteEvaluateur, Filiere, Documents
+)
+
+evaluateur_bp = Blueprint("evaluateur", __name__, url_prefix="/api/evaluateur")
+
+def get_evaluateur(user_id: int):
+    return Evaluateur.query.filter_by(user_id=user_id).first()
+
+@evaluateur_bp.route("/candidates/<int:candidat_id>", methods=["GET"])
+@jwt_required()
+def get_candidate_details(candidat_id):
+    try:
+        if not evaluateur_required():
+            return jsonify(msg="Accès réservé aux évaluateurs"), 403
+
+        user_id = int(get_jwt_identity())
+        ev = get_evaluateur(user_id)
+        if not ev:
+            return jsonify(msg="Profil évaluateur introuvable"), 404
+
+        c = Candidat.query.get(candidat_id)
+        if not c:
+            return jsonify(msg="Candidat introuvable"), 404
+
+        u = User.query.get(c.user_id)
+        filiere = Filiere.query.get(c.filiere_id) if c.filiere_id else None
+
+        my_note_row = NoteEvaluateur.query.filter_by(
+            evaluateur_id=ev.id,
+            candidat_id=c.id
+        ).first()
+
+        docs = Documents.query.filter_by(candidat_id=c.id).first()
+
+        return jsonify({
+            "candidat_id": c.id,
+            "status": c.status,
+
+            "nom": u.nom if u else None,
+            "prenom": u.prenom if u else None,
+            "email": u.email if u else None,
+            "cin": u.cin if u else None,
+            "phone_num": u.phone_num if u else None,
+
+            "cne": c.cne,
+            "t_diplome": c.t_diplome,
+            "branche_diplome": c.branche_diplome,
+            "bac_type": c.bac_type,
+            "moy_bac": c.moy_bac,
+            "m_s1": c.m_s1,
+            "m_s2": c.m_s2,
+            "m_s3": c.m_s3,
+            "m_s4": c.m_s4,
+
+            "filiere_id": c.filiere_id,
+            "filiere_nom": filiere.nom_filiere if filiere else None,
+
+            "documents": {
+                "bac": docs.bac if docs else None,
+                "rn_bac": docs.rn_bac if docs else None,
+                "diplome": docs.diplome if docs else None,
+                "rn_diplome": docs.rn_diplome if docs else None,
+                "cin_file": docs.cin_file if docs else None,
+            },
+
+            "my_note": my_note_row.note_eval if my_note_row else None,
+            "my_note_id": my_note_row.id if my_note_row else None,
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(msg=f"Server error: {str(e)}"), 500
+
+
 # ---------------------------------------------------------
 # 1) List candidates to evaluate (SUBMITTED only)
 # ---------------------------------------------------------
@@ -34,11 +113,15 @@ def list_candidates():
     if not ev:
         return jsonify(msg="Profil évaluateur introuvable"), 404
 
-    # filters (optional, simple)
     filiere_id = request.args.get("filiere_id", type=int)
     status = request.args.get("status", default="SUBMITTED", type=str)
 
-    q = Candidat.query
+    # Base query + join User + Filiere
+    q = (
+        db.session.query(Candidat, User, Filiere)
+        .join(User, User.id == Candidat.user_id)
+        .outerjoin(Filiere, Filiere.id == Candidat.filiere_id)
+    )
 
     if status:
         q = q.filter(Candidat.status == status)
@@ -46,23 +129,29 @@ def list_candidates():
     if filiere_id:
         q = q.filter(Candidat.filiere_id == filiere_id)
 
-    # only candidates who selected filiere
     q = q.filter(Candidat.filiere_id.isnot(None))
 
-    candidates = q.order_by(Candidat.id.desc()).all()
+    rows = q.order_by(Candidat.id.desc()).all()
 
-    # What did I already evaluate?
+    # My notes mapping
     my_notes = {
         n.candidat_id: n.note_eval
         for n in NoteEvaluateur.query.filter_by(evaluateur_id=ev.id).all()
     }
 
-    filiere_map = {f.id: f.nom_filiere for f in Filiere.query.all()}
-
     return jsonify([
         {
             "candidat_id": c.id,
-            "user_id": c.user_id,
+            "user_id": u.id,
+
+            # ✅ user info (frontend expects these)
+            "nom": u.nom,
+            "prenom": u.prenom,
+            "email": u.email,
+            "cin": u.cin,
+            "phone_num": u.phone_num,
+
+            # ✅ candidate info
             "cne": c.cne,
             "t_diplome": c.t_diplome,
             "branche_diplome": c.branche_diplome,
@@ -72,13 +161,16 @@ def list_candidates():
             "m_s3": c.m_s3,
             "m_s4": c.m_s4,
             "status": c.status,
-            "filiere_id": c.filiere_id,
-            "filiere_nom": filiere_map.get(c.filiere_id),
-            "my_note": my_notes.get(c.id)  # None if not evaluated yet
-        }
-        for c in candidates
-    ]), 200
 
+            # ✅ filiere (frontend expects `filiere`)
+            "filiere_id": c.filiere_id,
+            "filiere": f.nom_filiere if f else None,
+
+            # ✅ evaluator info
+            "my_note": my_notes.get(c.id),
+        }
+        for (c, u, f) in rows
+    ]), 200
 
 # ---------------------------------------------------------
 # 2) Submit note for a candidate (one per evaluator)

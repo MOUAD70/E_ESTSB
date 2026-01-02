@@ -1,7 +1,7 @@
 // CandidateApply.jsx
 import { useEffect, useState } from "react";
 import { services } from "@/utils/services";
-import { BadgeCheck, AlertCircle, X, Loader2 } from "lucide-react";
+import { BadgeCheck, AlertCircle, X, Loader2, User } from "lucide-react";
 
 const emptyForm = {
   cne: "",
@@ -44,9 +44,7 @@ export default function CandidateApply() {
       } catch (err) {
         // 404 = no profile => show form
         if (err?.response?.status !== 404) {
-          setError(
-            err?.response?.data?.msg || "Erreur lors du chargement du profil"
-          );
+          setError(err?.response?.data?.msg || "Erreur lors du chargement du profil");
         }
       } finally {
         setChecking(false);
@@ -59,8 +57,7 @@ export default function CandidateApply() {
   const inputBase =
     "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-sky-500 focus:border-sky-500";
 
-  const onChange = (k) => (e) =>
-    setForm((p) => ({ ...p, [k]: e.target.value }));
+  const onChange = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }));
 
   const submit = async () => {
     setError(null);
@@ -78,20 +75,20 @@ export default function CandidateApply() {
       "m_s4",
     ];
 
+    const labels = {
+      cne: "CNE",
+      t_diplome: "Type diplôme",
+      branche_diplome: "Branche diplôme",
+      bac_type: "Type Bac",
+      moy_bac: "Moyenne Bac",
+      m_s1: "Note S1",
+      m_s2: "Note S2",
+      m_s3: "Note S3",
+      m_s4: "Note S4",
+    };
+
     for (const f of required) {
       if (!String(form[f] ?? "").trim()) {
-        // nicer labels
-        const labels = {
-          cne: "CNE",
-          t_diplome: "Type diplôme",
-          branche_diplome: "Branche diplôme",
-          bac_type: "Type Bac",
-          moy_bac: "Moyenne Bac",
-          m_s1: "Note S1",
-          m_s2: "Note S2",
-          m_s3: "Note S3",
-          m_s4: "Note S4",
-        };
         setError(`${labels[f]} est requis`);
         return;
       }
@@ -133,28 +130,25 @@ export default function CandidateApply() {
     }
   };
 
-  // If you later add an endpoint like GET /candidate/profile,
-  // you can detect "locked" on mount and setLocked(true) directly.
-  // For now, we lock only after backend reply.
-
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-sky-700" />
       </div>
     );
   }
 
-  // ✅ Locked view
+  // ✅ Locked view (same hover/transition vibe as AdminUsers cards)
   if (locked) {
     return (
       <div className="min-h-screen bg-white px-6 py-6">
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 group">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center">
-              <BadgeCheck className="h-5 w-5 text-sky-700" />
+            <div className="h-11 w-11 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors flex items-center justify-center">
+              <BadgeCheck className="h-5 w-5 text-sky-600" />
             </div>
-            <div>
+
+            <div className="flex-1">
               <h2 className="text-base font-semibold text-gray-900">
                 Profil déjà soumis
               </h2>
@@ -163,15 +157,17 @@ export default function CandidateApply() {
                   "Votre profil académique est déjà enregistré. Vous ne pouvez plus le modifier."}
               </p>
 
-              <p className="text-sm text-gray-500 mt-3">
-                Vous pouvez maintenant :
-              </p>
+              <p className="text-sm text-gray-500 mt-3">Vous pouvez maintenant :</p>
               <ul className="text-sm text-gray-600 list-disc ml-5 mt-1">
                 <li>Choisir une filière</li>
                 <li>Déposer vos documents</li>
                 <li>Consulter vos résultats ultérieurement</li>
               </ul>
             </div>
+          </div>
+
+          <div className="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-sky-500 rounded-full" style={{ width: "100%" }} />
           </div>
         </div>
       </div>
@@ -180,7 +176,7 @@ export default function CandidateApply() {
 
   return (
     <div className="min-h-screen bg-white px-6 py-6">
-      {/* Success */}
+      {/* Success (same banner style) */}
       {success && (
         <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg flex items-center justify-between">
           <div className="flex items-center">
@@ -189,7 +185,7 @@ export default function CandidateApply() {
           </div>
           <button
             onClick={() => setSuccess(null)}
-            className="text-green-800 hover:text-green-900"
+            className="text-green-800 hover:text-green-900 cursor-pointer"
             type="button"
           >
             <X className="h-4 w-4" />
@@ -197,7 +193,7 @@ export default function CandidateApply() {
         </div>
       )}
 
-      {/* Error */}
+      {/* Error (same banner style) */}
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg flex items-center justify-between">
           <div className="flex items-center">
@@ -206,7 +202,7 @@ export default function CandidateApply() {
           </div>
           <button
             onClick={() => setError(null)}
-            className="text-red-800 hover:text-red-900"
+            className="text-red-800 hover:text-red-900 cursor-pointer"
             type="button"
           >
             <X className="h-4 w-4" />
@@ -214,191 +210,176 @@ export default function CandidateApply() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-          Mon dossier
-        </h1>
-        <p className="text-sm text-gray-500">
-          Remplissez votre profil académique pour pouvoir choisir une filière et
-          déposer vos documents.
-        </p>
-      </div>
+      {/* Header (same spacing/typography vibe) */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            Mon dossier
+          </h1>
+          <p className="text-sm text-gray-500">
+            Remplissez votre profil académique pour pouvoir choisir une filière et déposer vos documents.
+          </p>
+        </div>
 
-      {/* 🔒 Locked state */}
-      {locked ? (
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center">
-              <BadgeCheck className="h-5 w-5 text-sky-700" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">
-                Profil déjà soumis
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {lockedMsg ||
-                  "Votre profil académique est déjà enregistré. Vous ne pouvez plus le modifier."}
-              </p>
-              <p className="text-sm text-gray-500 mt-3">
-                Vous pouvez maintenant passer à l’étape suivante : choisir une
-                filière et déposer vos documents.
-              </p>
-            </div>
+        <div className="flex gap-2 justify-end">
+          <div className="px-3 py-2 rounded-4xl bg-gray-100 text-gray-700 inline-flex items-center">
+            <User className="h-4 w-4 mr-2 text-gray-500" />
+            <span className="text-sm">Profil académique</span>
           </div>
         </div>
-      ) : (
-        /* Form */
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-900">
-              Informations académiques
-            </h2>
-            <p className="text-xs text-gray-500">
-              Les champs marqués * sont obligatoires.
-            </p>
+      </div>
+
+      {/* Form card (same hover + transition + cursor vibe) */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Informations académiques
+          </h2>
+          <p className="text-xs text-gray-500">Les champs marqués * sont obligatoires.</p>
+        </div>
+
+        <div className="p-6 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">CNE *</label>
+              <input
+                value={form.cne}
+                onChange={onChange("cne")}
+                className={`${inputBase} mt-1`}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Type diplôme *</label>
+              <input
+                value={form.t_diplome}
+                onChange={onChange("t_diplome")}
+                className={`${inputBase} mt-1`}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Branche diplôme *</label>
+              <input
+                value={form.branche_diplome}
+                onChange={onChange("branche_diplome")}
+                className={`${inputBase} mt-1`}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Type Bac *</label>
+              <input
+                value={form.bac_type}
+                onChange={onChange("bac_type")}
+                className={`${inputBase} mt-1`}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700">Moyenne Bac *</label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.moy_bac}
+                onChange={onChange("moy_bac")}
+                className={`${inputBase} mt-1`}
+              />
+            </div>
           </div>
 
-          <div className="p-6 space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  CNE *
-                </label>
-                <input
-                  value={form.cne}
-                  onChange={onChange("cne")}
-                  className={`${inputBase} mt-1`}
-                />
-              </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              Notes Semestres (obligatoires) *
+            </h3>
 
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Type diplôme *
-                </label>
-                <input
-                  value={form.t_diplome}
-                  onChange={onChange("t_diplome")}
-                  className={`${inputBase} mt-1`}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Branche diplôme *
-                </label>
-                <input
-                  value={form.branche_diplome}
-                  onChange={onChange("branche_diplome")}
-                  className={`${inputBase} mt-1`}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Type Bac *
-                </label>
-                <input
-                  value={form.bac_type}
-                  onChange={onChange("bac_type")}
-                  className={`${inputBase} mt-1`}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Moyenne Bac *
-                </label>
+                <label className="text-sm font-medium text-gray-700">S1 *</label>
                 <input
                   type="number"
                   step="0.01"
-                  value={form.moy_bac}
-                  onChange={onChange("moy_bac")}
+                  value={form.m_s1}
+                  onChange={onChange("m_s1")}
+                  className={`${inputBase} mt-1`}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">S2 *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.m_s2}
+                  onChange={onChange("m_s2")}
+                  className={`${inputBase} mt-1`}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">S3 *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.m_s3}
+                  onChange={onChange("m_s3")}
+                  className={`${inputBase} mt-1`}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">S4 *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.m_s4}
+                  onChange={onChange("m_s4")}
                   className={`${inputBase} mt-1`}
                 />
               </div>
             </div>
+          </div>
 
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                Notes Semestres (obligatoires) *
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    S1 *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.m_s1}
-                    onChange={onChange("m_s1")}
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    S2 *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.m_s2}
-                    onChange={onChange("m_s2")}
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    S3 *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.m_s3}
-                    onChange={onChange("m_s3")}
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    S4 *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.m_s4}
-                    onChange={onChange("m_s4")}
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
-              </div>
-            </div>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => {
+                setForm(emptyForm);
+                setError(null);
+                setSuccess(null);
+              }}
+              disabled={saving}
+              className={`px-4 py-2 rounded-4xl transition-colors cursor-pointer ${
+                saving
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+              }`}
+              type="button"
+            >
+              Réinitialiser
+            </button>
 
-            <div className="flex justify-end">
-              <button
-                onClick={submit}
-                disabled={saving}
-                className={`px-4 py-2 rounded-4xl transition-colors flex items-center cursor-pointer ${
-                  saving
-                    ? "bg-sky-900/70 text-white cursor-not-allowed"
-                    : "bg-sky-900 hover:bg-sky-950 text-white"
-                }`}
-                type="button"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  "Enregistrer"
-                )}
-              </button>
-            </div>
+            <button
+              onClick={submit}
+              disabled={saving}
+              className={`px-4 py-2 rounded-4xl transition-colors flex items-center cursor-pointer ${
+                saving
+                  ? "bg-sky-900/70 text-white cursor-not-allowed"
+                  : "bg-sky-900 hover:bg-sky-950 text-white"
+              }`}
+              type="button"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  Enregistrement...
+                </>
+              ) : (
+                "Enregistrer"
+              )}
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

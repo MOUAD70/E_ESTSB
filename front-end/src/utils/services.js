@@ -99,8 +99,30 @@ export const services = {
     },
 
     getProfile: async () => {
-    const { data } = await axiosClient.get("/candidate/profile");
-    return data;
+      const { data } = await axiosClient.get("/candidate/profile");
+      return data;
+    },
   },
+
+  evaluateur: {
+    getCandidates: async () => {
+      const { data } = await axiosClient.get("/evaluateur/candidates");
+      return data;
+    },
+
+    getCandidate: async (id) => {
+      const { data } = await axiosClient.get(`/evaluateur/candidates/${id}`);
+      return data;
+    },
+
+    submitNote: async (payload) => {
+      const { data } = await axiosClient.post("/evaluateur/notes", payload);
+      return data;
+    },
+
+    updateNote: async (candidatId, payload) => {
+      const { data } = await axiosClient.put(`/evaluateur/notes/${candidatId}`, payload);
+      return data;
+    },
   },
 };

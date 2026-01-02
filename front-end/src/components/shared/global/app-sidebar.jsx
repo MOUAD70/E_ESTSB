@@ -34,6 +34,8 @@ import {
   CANDIDATE_RESULT_ROUTE,
 } from "../../../routes/Routes";
 
+/* ===================== NAV DEFINITIONS ===================== */
+
 // ADMIN
 const adminNav = [
   { title: "Tableau de bord", url: ADMIN_DASHBOARD_ROUTE, icon: IconDashboard },
@@ -49,39 +51,51 @@ const candidateNav = [
   { title: "Résultat", url: CANDIDATE_RESULT_ROUTE, icon: IconAward },
 ];
 
+// EVALUATEUR
+const evaluateurNav = [
+  { title: "Tableau de bord", url: "/evaluateur/dashboard", icon: IconDashboard },
+  { title: "Candidats", url: "/evaluateur/candidates", icon: IconUsers },
+];
+
+/* ===================== ROLE CONFIG ===================== */
+
+const roleConfig = {
+  ADMIN: {
+    nav: adminNav,
+    header: {
+      title: "E-ESTSB Admin",
+      icon: IconUserShield,
+      to: ADMIN_DASHBOARD_ROUTE,
+    },
+  },
+  CANDIDAT: {
+    nav: candidateNav,
+    header: {
+      title: "E-ESTSB Candidat",
+      icon: IconUserShield,
+      to: CANDIDAT_APPLY_ROUTE,
+    },
+  },
+  EVALUATEUR: {
+    nav: evaluateurNav,
+    header: {
+      title: "E-ESTSB Évaluateur",
+      icon: IconUserShield,
+      to: "/evaluateur/dashboard",
+    },
+  },
+};
+
+/* ===================== COMPONENT ===================== */
+
 export function AppSidebar({ ...props }) {
   const { user } = useContext(AuthContext);
-
   const role = (user?.role || "").toUpperCase();
 
-  const items = useMemo(() => {
-    if (role === "ADMIN") return adminNav;
-    if (role === "CANDIDAT") return candidateNav;
-    // fallback: if EVALUATEUR you can add its menu later
-    return [];
-  }, [role]);
+  const config = roleConfig[role];
 
-  const header = useMemo(() => {
-    if (role === "ADMIN") {
-      return {
-        title: "E-ESTSB Admin",
-        icon: IconUserShield,
-        to: ADMIN_DASHBOARD_ROUTE,
-      };
-    }
-    if (role === "CANDIDAT") {
-      return {
-        title: "E-ESTSB Candidat",
-        icon: IconUserShield,
-        to: CANDIDAT_APPLY_ROUTE,
-      };
-    }
-    return {
-      title: "E-ESTSB",
-      icon: IconUserShield,
-      to: "/",
-    };
-  }, [role]);
+  // Safety fallback (should not happen if auth is correct)
+  if (!config) return null;
 
   const sidebarUser = {
     name: user ? `${user.nom} ${user.prenom}` : "—",
@@ -97,9 +111,11 @@ export function AppSidebar({ ...props }) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <NavLink to={header.to}>
-                <header.icon className="!size-5" />
-                <span className="text-base font-semibold">{header.title}</span>
+              <NavLink to={config.header.to}>
+                <config.header.icon className="!size-5" />
+                <span className="text-base font-semibold">
+                  {config.header.title}
+                </span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -107,7 +123,7 @@ export function AppSidebar({ ...props }) {
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={items} />
+        <NavMain items={config.nav} />
       </SidebarContent>
 
       <SidebarFooter>

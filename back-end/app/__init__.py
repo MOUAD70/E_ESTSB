@@ -21,6 +21,8 @@ def create_app(config_class="config.Config"):
 
     app.config.from_object(config_class)
 
+    project_root = os.path.abspath(os.path.join(app.root_path, ".."))  # back-end
+    app.config["UPLOAD_FOLDER"] = os.path.join(project_root, "uploads")
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     db.init_app(app)
@@ -31,10 +33,13 @@ def create_app(config_class="config.Config"):
     from app.candidate.routes import candidate_bp
     from app.admin.routes import admin_bp
     from app.evaluateur.routes import evaluateur_bp
+    from app.routes.upload_routes import uploads_bp
+    
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(candidate_bp, url_prefix="/api/candidate")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(evaluateur_bp, url_prefix="/api/evaluateur")
+    app.register_blueprint(uploads_bp)
 
     return app

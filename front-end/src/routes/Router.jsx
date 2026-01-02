@@ -13,16 +13,17 @@ import {
   UNAUTHORIZED_ROUTE,
   ADMIN_DASHBOARD_ROUTE,
   CANDIDAT_APPLY_ROUTE,
-  EVALUATEUR_DASHBOARD_ROUTE,
   ADMIN_USERS_ROUTE,
   ADMIN_FINAL_SCORES_ROUTE,
   CANDIDATE_PROGRAMS_ROUTE,
   CANDIDATE_UPLOAD_DOCS_ROUTE,
   CANDIDATE_RESULT_ROUTE,
+  EVALUATEUR_CANDIDATES_ROUTE,
+  EVALUATEUR_DASHBOARD_ROUTE,
+  EVALUATEUR_CANDIDATE_DETAILS_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
 import Unauthorized from "../pages/errors/Unauthorized";
-import EvaluateurDashboard from "../pages/common/evaluateur/EvaluateurDashboard";
 import ProtectedRoute from "./protectedRoutes/ProtectedRoute";
 import Dashboard from "../pages/common/admin/Dashboard";
 import AdminLayout from "../layouts/AdminLayout";
@@ -33,6 +34,10 @@ import CandidateLayout from "../layouts/CandidateLayout";
 import Programs from "../pages/common/candidate/Programs";
 import AddDocuments from "../pages/common/candidate/AddDocuments";
 import CResults from "../pages/common/candidate/CResults";
+import EvaluateurLayout from "../layouts/EvaluateurLayout";
+import Candidates from "../pages/common/evaluateur/Candidates";
+import EDashboard from "../pages/common/evaluateur/EDashboard";
+import CandidateDetails from "../pages/common/evaluateur/CandidateDetails";
 
 export const router = createBrowserRouter([
   {
@@ -82,38 +87,50 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    path: EVALUATEUR_DASHBOARD_ROUTE,
     element: (
       <ProtectedRoute allowedRoles={["EVALUATEUR"]}>
-        <EvaluateurDashboard />
+        <EvaluateurLayout />
       </ProtectedRoute>
     ),
+    children: [
+      {
+        path: EVALUATEUR_DASHBOARD_ROUTE,
+        element: <EDashboard />,
+      },
+      {
+        path: EVALUATEUR_CANDIDATES_ROUTE,
+        element: <Candidates />,
+      },
+      {
+        path: EVALUATEUR_CANDIDATE_DETAILS_ROUTE,
+        element: <CandidateDetails />,
+      },
+    ],
   },
   {
     element: (
       <ProtectedRoute allowedRoles={["CANDIDAT"]}>
-        <CandidateLayout/>
+        <CandidateLayout />
       </ProtectedRoute>
     ),
     children: [
       {
         path: CANDIDAT_APPLY_ROUTE,
-        element: <Apply/>
+        element: <Apply />,
       },
       {
         path: CANDIDATE_PROGRAMS_ROUTE,
-        element: <Programs/>
+        element: <Programs />,
       },
       {
         path: CANDIDATE_UPLOAD_DOCS_ROUTE,
-        element: <AddDocuments/>
+        element: <AddDocuments />,
       },
       {
         path: CANDIDATE_RESULT_ROUTE,
-        element: <CResults/>
-      }
-    ]
-
+        element: <CResults />,
+      },
+    ],
   },
   {
     path: UNAUTHORIZED_ROUTE,
