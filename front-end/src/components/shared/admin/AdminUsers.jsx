@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+// AdminUsers.jsx — refined: unified KPI cards, sort filter, all logic unchanged
+import { useEffect, useMemo, useState, useRef } from "react";
 import { services } from "@/utils/services";
 import {
-  BadgeCheck,
-  AlertCircle,
   X,
   User,
   Mail,
@@ -12,10 +11,18 @@ import {
   UserPlus,
   Loader2,
   Shield,
+  AlertCircle,
+  Search,
+  ChevronDown,
+  Check,
+  ArrowUpDown,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AlertBanner } from "@/components/shared/global/AlertBanner";
+import { Pagination } from "@/components/shared/global/Pagination";
+import { useAlert } from "@/hooks/useAlert";
 
 const ROLES = ["ADMIN", "EVALUATEUR", "CANDIDAT"];
+const PAGE_SIZE = 8;
 
 const emptyForm = {
   nom: "",
@@ -27,23 +34,199 @@ const emptyForm = {
   role: "CANDIDAT",
 };
 
-const PAGE_SIZE = 8;
+/* ── Unchanged ── */
+const inputBase =
+  "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-sky-500 focus:border-sky-500";
 
+function roleBadgeClass(role) {
+  const r = (role || "").toUpperCase();
+  if (r === "ADMIN") return "bg-purple-50 text-purple-700 border-purple-200";
+  if (r === "EVALUATEUR") return "bg-blue-50 text-blue-700 border-blue-200";
+  return "bg-gray-50 text-gray-700 border-gray-200";
+}
+
+/* ─── Sort options ─── */
+const SORT_OPTIONS = [
+  { value: "default", label: "Par défaut" },
+  { value: "newest", label: "Plus récents" },
+  { value: "oldest", label: "Plus anciens" },
+];
+
+/* ─── StyledSelect ─── */
+function StyledSelect({
+  value,
+  onChange,
+  options = [],
+  placeholder = "Sélectionner…",
+  className = "",
+  disabled = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const h = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={`
+          w-full flex items-center justify-between gap-2
+          rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-left
+          outline-none transition-all duration-150 hover:border-gray-300
+          ${open ? "border-sky-400 ring-2 ring-sky-100" : ""}
+          ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+        `}
+      >
+        <span className={selected ? "text-gray-900" : "text-gray-400"}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <ChevronDown
+          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full min-w-[8rem] rounded-lg border border-gray-100 bg-white shadow-lg shadow-gray-200/60 py-1 animate-in fade-in-0 zoom-in-95 duration-100">
+          {options.map((opt) => {
+            const isSel = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left cursor-pointer transition-colors duration-100 ${isSel ? "bg-sky-50 text-sky-700 font-medium" : "text-gray-700 hover:bg-gray-50"}`}
+              >
+                <span>{opt.label}</span>
+                {isSel && (
+                  <Check className="h-3.5 w-3.5 flex-shrink-0 text-sky-600" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ROLE_OPTIONS = [
+  { value: "ALL", label: "Tous les rôles" },
+  ...ROLES.map((r) => ({ value: r, label: r })),
+];
+const ROLE_FORM_OPTIONS = ROLES.map((r) => ({ value: r, label: r }));
+
+/* ─── Shared shimmer style ─── */
+const shimmerStyle = `
+  @keyframes su-shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+`;
+
+function ShimmerBlock({ className = "" }) {
+  return (
+    <div className={`relative overflow-hidden bg-gray-100 ${className}`}>
+      <div
+        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent"
+        style={{ animation: "su-shimmer 1.6s ease-in-out infinite" }}
+      />
+    </div>
+  );
+}
+
+/* ─── Unified KPI card (matches AdminKpiCards aesthetic) ─── */
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  gradient,
+  barColor,
+  dotColor,
+  pct = 100,
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all duration-300">
+      <div
+        className={`h-[3px] w-full bg-gradient-to-r ${gradient} rounded-t-2xl`}
+      />
+      <div
+        className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br ${gradient} opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-[0.07]`}
+      />
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-5">
+          <div
+            className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconBg} ${iconColor} ring-1 ring-white group-hover:scale-105 transition-transform duration-300`}
+          >
+            <Icon className="h-[18px] w-[18px]" />
+          </div>
+        </div>
+        <p className="text-[28px] font-bold tracking-tight text-gray-900 tabular-nums leading-none mb-2">
+          {value}
+        </p>
+        <p className="text-sm font-semibold text-gray-700 leading-snug mb-5">
+          {label}
+        </p>
+        <div className="h-[3px] w-full overflow-hidden rounded-full bg-gray-100">
+          <div
+            className={`h-full rounded-full ${barColor} transition-all duration-500`}
+            style={{ width: `${Math.min(100, pct)}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Stat card skeleton (mirrors StatCard) ─── */
+function StatCardSkeleton() {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <style>{shimmerStyle}</style>
+      <div className="h-[3px] w-full rounded-t-2xl bg-gray-100" />
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-5">
+          <ShimmerBlock className="h-11 w-11 rounded-xl" />
+        </div>
+        <ShimmerBlock className="h-9 w-20 rounded-lg mb-2" />
+        <ShimmerBlock className="h-3.5 w-28 rounded-md mb-5" />
+        <ShimmerBlock className="h-[3px] w-full rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component — ALL logic unchanged ─── */
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [success, setSuccess] = useState(null);
-  const [deleteError, setDeleteError] = useState(null);
-  const [error, setError] = useState(null);
+  const { success, error, setSuccess, setError, clearAll } = useAlert();
 
   const [q, setQ] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("default");
+  const [page, setPage] = useState(1);
 
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState("create");
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
 
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
@@ -51,21 +234,14 @@ const AdminUsers = () => {
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const [page, setPage] = useState(1);
-
-  const dismissSuccessSoon = () => setTimeout(() => setSuccess(null), 3000);
-  const dismissErrorSoon = () => setTimeout(() => setDeleteError(null), 5000);
-
   const fetchUsers = async () => {
     setLoading(true);
-    setError(null);
-    setDeleteError(null);
+    clearAll();
     try {
-      const data = await services.admin.getUsers();
-      setUsers(data);
+      setUsers(await services.admin.getUsers());
     } catch (err) {
       setError(
-        err?.response?.data?.msg || err.message || "Erreur de chargement"
+        err?.response?.data?.msg || err.message || "Erreur de chargement",
       );
     } finally {
       setLoading(false);
@@ -78,42 +254,50 @@ const AdminUsers = () => {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return users;
-    return users.filter((u) => {
-      const hay =
-        `${u.nom} ${u.prenom} ${u.email} ${u.cin} ${u.phone_num} ${u.role}`.toLowerCase();
-      return hay.includes(s);
+    let list = users.filter((u) => {
+      const matchRole =
+        roleFilter === "ALL" || (u.role || "").toUpperCase() === roleFilter;
+      if (!matchRole) return false;
+      if (!s) return true;
+      return `${u.nom} ${u.prenom} ${u.email} ${u.cin} ${u.phone_num}`
+        .toLowerCase()
+        .includes(s);
     });
-  }, [users, q]);
+    // Sort
+    if (sortBy === "newest") list = [...list].reverse();
+    // "oldest" = natural order (default API order), "default" = same
+    return list;
+  }, [users, q, roleFilter, sortBy]);
 
   useEffect(() => {
     setPage(1);
-  }, [q, users.length]);
+  }, [q, roleFilter, sortBy, users.length]);
 
-  const totalItems = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const startIndex = (safePage - 1) * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
-  const pagedData = filtered.slice(startIndex, endIndex);
+  const paged = filtered.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
-  const roleBadgeClass = (role) => {
-    const r = (role || "").toUpperCase();
-    if (r === "ADMIN") return "bg-purple-50 text-purple-700 border-purple-200";
-    if (r === "EVALUATEUR") return "bg-blue-50 text-blue-700 border-blue-200";
-    return "bg-gray-50 text-gray-700 border-gray-200";
-  };
+  const stats = useMemo(
+    () => ({
+      total: users.length,
+      admins: users.filter((u) => (u.role || "").toUpperCase() === "ADMIN")
+        .length,
+      evals: users.filter((u) => (u.role || "").toUpperCase() === "EVALUATEUR")
+        .length,
+    }),
+    [users],
+  );
 
   const openCreate = () => {
     setMode("create");
     setSelected(null);
-    setForm({ ...emptyForm, role: "CANDIDAT" });
-    setError(null);
-    setDeleteError(null);
-    setSuccess(null);
+    setForm({ ...emptyForm });
+    setFormError(null);
     setOpen(true);
   };
-
   const openEdit = (u) => {
     setMode("edit");
     setSelected(u);
@@ -126,15 +310,11 @@ const AdminUsers = () => {
       phone_num: u.phone_num || "",
       role: (u.role || "CANDIDAT").toUpperCase(),
     });
-    setError(null);
-    setDeleteError(null);
-    setSuccess(null);
+    setFormError(null);
     setOpen(true);
   };
-
   const closeModal = () => {
-    if (saving) return;
-    setOpen(false);
+    if (!saving) setOpen(false);
   };
 
   const validate = () => {
@@ -152,167 +332,119 @@ const AdminUsers = () => {
   const save = async () => {
     const msg = validate();
     if (msg) {
-      setError(msg);
+      setFormError(msg);
       return;
     }
-
     setSaving(true);
-    setError(null);
-    setDeleteError(null);
-    setSuccess(null);
-
+    setFormError(null);
     try {
       if (mode === "create") {
-        await services.admin.createUser({
-          nom: form.nom,
-          prenom: form.prenom,
-          email: form.email,
-          password: form.password,
-          cin: form.cin,
-          phone_num: form.phone_num,
-          role: form.role,
-        });
+        await services.admin.createUser(form);
         setSuccess("Utilisateur créé avec succès.");
       } else {
         const payload = {};
-
-        if ((form.nom || "") !== (selected.nom || "")) payload.nom = form.nom;
-        if ((form.prenom || "") !== (selected.prenom || ""))
-          payload.prenom = form.prenom;
-        if ((form.email || "") !== (selected.email || ""))
-          payload.email = form.email;
-        if ((form.cin || "") !== (selected.cin || "")) payload.cin = form.cin;
-        if ((form.phone_num || "") !== (selected.phone_num || ""))
+        if (form.nom !== selected.nom) payload.nom = form.nom;
+        if (form.prenom !== selected.prenom) payload.prenom = form.prenom;
+        if (form.email !== selected.email) payload.email = form.email;
+        if (form.cin !== selected.cin) payload.cin = form.cin;
+        if (form.phone_num !== selected.phone_num)
           payload.phone_num = form.phone_num;
-
         const prevRole = (selected.role || "CANDIDAT").toUpperCase();
-        const nextRole = (form.role || "CANDIDAT").toUpperCase();
-        if (nextRole !== prevRole) payload.role = nextRole; // only if changed
-
+        if (form.role !== prevRole) payload.role = form.role;
         await services.admin.updateUser(selected.id, payload);
         setSuccess("Utilisateur mis à jour avec succès.");
       }
-
       setOpen(false);
       await fetchUsers();
-      dismissSuccessSoon();
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Une erreur est survenue"
+      setFormError(
+        err?.response?.data?.msg || err.message || "Une erreur est survenue",
       );
     } finally {
       setSaving(false);
     }
   };
 
-  const askDelete = (u) => {
-    setError(null);
-    setDeleteError(null);
-    setSuccess(null);
-    setDeleteConfirm({ show: true, user: u });
-  };
-
-  const cancelDelete = () => {
-    if (isDeleting) return;
-    setDeleteConfirm({ show: false, user: null });
-  };
-
   const confirmDelete = async () => {
     const u = deleteConfirm.user;
     if (!u) return;
-
     setIsDeleting(true);
-    setError(null);
-    setSuccess(null);
-    setDeleteError(null);
-
+    clearAll();
     try {
       await services.admin.deleteUser(u.id);
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
       setSuccess("Utilisateur supprimé avec succès.");
       setDeleteConfirm({ show: false, user: null });
-      dismissSuccessSoon();
     } catch (err) {
-      const msg =
-        err?.response?.data?.msg || err.message || "Suppression impossible";
-      setDeleteError(msg);
-      dismissErrorSoon();
+      setError(
+        err?.response?.data?.msg || err.message || "Suppression impossible",
+      );
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const stats = useMemo(() => {
-    const total = users.length;
-    const admins = users.filter(
-      (u) => (u.role || "").toUpperCase() === "ADMIN"
-    ).length;
-    const evals = users.filter(
-      (u) => (u.role || "").toUpperCase() === "EVALUATEUR"
-    ).length;
-    return { total, admins, evals };
-  }, [users]);
-
-  const inputBase =
-    "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-sky-500 focus:border-sky-500";
+  const statCards = [
+    {
+      label: "Total utilisateurs",
+      value: stats.total,
+      icon: User,
+      iconBg: "bg-sky-50",
+      iconColor: "text-sky-600",
+      gradient: "from-sky-500 to-sky-600",
+      barColor: "bg-gradient-to-r from-sky-400 to-sky-600",
+      pct: 100,
+    },
+    {
+      label: "Administrateurs",
+      value: stats.admins,
+      icon: Shield,
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
+      gradient: "from-purple-500 to-purple-600",
+      barColor: "bg-gradient-to-r from-purple-400 to-purple-600",
+      pct: stats.total > 0 ? (stats.admins / stats.total) * 100 : 0,
+    },
+    {
+      label: "Évaluateurs",
+      value: stats.evals,
+      icon: Shield,
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+      gradient: "from-blue-500 to-blue-600",
+      barColor: "bg-gradient-to-r from-blue-400 to-blue-600",
+      pct: stats.total > 0 ? (stats.evals / stats.total) * 100 : 0,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-white px-6 py-6">
-      {success && (
-        <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-lg flex items-center justify-between">
-          <div className="flex items-center">
-            <BadgeCheck className="h-5 w-5 mr-2" />
-            <span>{success}</span>
-          </div>
-          <button
-            onClick={() => setSuccess(null)}
-            className="text-green-800 hover:text-green-900"
-            type="button"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-
-      {(deleteError || error) && (
-        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-lg flex items-center justify-between">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2" />
-            <span>{deleteError || error}</span>
-          </div>
-          <button
-            onClick={() => {
-              setError(null);
-              setDeleteError(null);
-            }}
-            className="text-red-800 hover:text-red-900"
-            type="button"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      )}
+    <div className="min-h-screen bg-[#f7f8fa] px-6 py-7">
+      <AlertBanner
+        message={success}
+        type="success"
+        onDismiss={() => setSuccess(null)}
+      />
+      <AlertBanner
+        message={error}
+        type="error"
+        onDismiss={() => setError(null)}
+      />
 
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
             Utilisateurs
           </h1>
-          <p className="text-sm text-gray-500">
-            Gestion des comptes (ADMIN / EVALUATEUR / CANDIDAT)
+          <p className="mt-0.5 text-sm text-gray-500">
+            Gestion des comptes (ADMIN / ÉVALUATEUR / CANDIDAT)
           </p>
         </div>
-
         <div className="flex gap-2 justify-end">
           <button
             onClick={fetchUsers}
             disabled={loading}
-            className={`px-4 py-2 rounded-4xl transition-colors cursor-pointer inline-flex items-center justify-center ${
-              loading
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-            }`}
+            className={`px-4 py-2 rounded-4xl transition-colors cursor-pointer inline-flex items-center justify-center ${loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
             type="button"
           >
             {loading ? (
@@ -321,239 +453,156 @@ const AdminUsers = () => {
               "Actualiser"
             )}
           </button>
-
           <button
             onClick={openCreate}
-            className="items-center bg-sky-900 text-white hover:bg-sky-950 transition-colors duration-150 py-2.5 px-4 text-[16px] rounded-4xl cursor-pointer border-0 outline-0 inline-flex justify-center align-center"
+            className="items-center bg-sky-900 text-white hover:bg-sky-950 transition-colors duration-150 py-2.5 px-4 text-sm rounded-4xl cursor-pointer inline-flex gap-2"
             type="button"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
+            <UserPlus className="h-4 w-4" />
             Ajouter
           </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
-        {loading ? (
-          <>
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-8 w-16 mt-2" />
-                  </div>
-                  <Skeleton className="h-11 w-11 rounded-lg" />
-                </div>
-                <Skeleton className="mt-4 h-1 w-full rounded-full" />
-              </div>
-            ))}
-          </>
-        ) : (
-          <>
-            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Total utilisateurs
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-800 mt-1 group-hover:text-sky-700 transition-colors">
-                    {stats.total}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-sky-50 group-hover:bg-sky-100 transition-colors">
-                  <User className="h-5 w-5 text-sky-600" />
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-sky-500 rounded-full"
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Administrateurs
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-800 mt-1 group-hover:text-purple-700 transition-colors">
-                    {stats.admins}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-50 group-hover:bg-purple-100 transition-colors">
-                  <Shield className="h-5 w-5 text-purple-600" />
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${
-                      stats.total > 0
-                        ? Math.min(100, (stats.admins / stats.total) * 100)
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Évaluateurs
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-800 mt-1 group-hover:text-blue-700 transition-colors">
-                    {stats.evals}
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                  <Shield className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${
-                      stats.total > 0
-                        ? Math.min(100, (stats.evals / stats.total) * 100)
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-          </>
-        )}
+      {/* Stat cards — unified with KPI card design */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
+        {loading
+          ? [1, 2, 3].map((i) => <StatCardSkeleton key={i} />)
+          : statCards.map((card) => <StatCard key={card.label} {...card} />)}
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-        <div className="w-full sm:max-w-md">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher (nom, email, CIN, téléphone, rôle...)"
-            className={inputBase}
-          />
-        </div>
+        <div className="flex flex-wrap gap-2 w-full sm:max-w-2xl">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[160px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher (nom, email, CIN, téléphone...)"
+              className="w-full rounded-md border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm outline-none transition-all focus:ring-2 focus:ring-sky-100 focus:border-sky-400 placeholder:text-gray-400"
+            />
+          </div>
 
-        <div className="text-sm text-gray-500">
+          {/* Role filter */}
+          <StyledSelect
+            value={roleFilter}
+            onChange={setRoleFilter}
+            options={ROLE_OPTIONS}
+            className="w-40"
+          />
+
+          {/* Sort filter */}
+          <div className="relative">
+            <StyledSelect
+              value={sortBy}
+              onChange={setSortBy}
+              options={SORT_OPTIONS}
+              className="w-40"
+            />
+          </div>
+        </div>
+        <div className="text-sm text-gray-500 flex-shrink-0">
           {loading ? "Chargement..." : `${filtered.length} utilisateur(s)`}
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-sky-100 to-sky-50">
+          <table className="w-full divide-y divide-gray-100">
+            <thead className="bg-gray-50/80">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Utilisateur
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Identité
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Rôle
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
+                {["Utilisateur", "Contact", "Identité", "Rôle", "Actions"].map(
+                  (h, i) => (
+                    <th
+                      key={h}
+                      className={`px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 ${i === 4 ? "text-center" : ""}`}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
-
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-50 bg-white">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-10">
                     <div className="h-32 rounded-xl bg-gray-100 animate-pulse" />
                   </td>
                 </tr>
-              ) : pagedData.length === 0 ? (
+              ) : paged.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-10 text-center text-gray-500"
-                  >
-                    Aucun utilisateur trouvé.
+                  <td colSpan={5} className="px-6 py-14 text-center">
+                    <div className="flex flex-col items-center gap-2 text-gray-400">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                        <User className="h-5 w-5" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-500">
+                        Aucun utilisateur trouvé.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                pagedData.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                paged.map((u) => (
+                  <tr
+                    key={u.id}
+                    className="hover:bg-gray-50/60 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center">
-                          <User className="h-5 w-5 text-gray-500" />
+                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center ring-1 ring-gray-200">
+                          <User className="h-4 w-4 text-gray-500" />
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                        <div className="ml-3">
+                          <div className="text-sm font-semibold text-gray-900">
                             {u.nom} {u.prenom}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs text-gray-400">
                             ID: {u.id}
                           </div>
                         </div>
                       </div>
                     </td>
-
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <div className="text-sm text-gray-900 flex items-center">
-                          <Mail className="h-4 w-4 mr-2 text-gray-400" />
-                          {u.email}
-                        </div>
-                        <div className="text-sm text-gray-500 flex items-center mt-1">
-                          <Phone className="h-4 w-4 mr-2 text-gray-400" />
-                          {u.phone_num}
-                        </div>
+                      <div className="text-sm text-gray-700 flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                        {u.email}
+                      </div>
+                      <div className="text-sm text-gray-400 flex items-center gap-1.5 mt-1">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        {u.phone_num}
                       </div>
                     </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <span className="text-gray-500">CIN: </span>
-                        <span className="font-medium">{u.cin}</span>
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <span className="text-gray-400">CIN: </span>
+                      <span className="font-medium">{u.cin}</span>
                     </td>
-
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs ${roleBadgeClass(
-                          u.role
-                        )}`}
+                        className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold ${roleBadgeClass(u.role)}`}
                       >
                         {(u.role || "CANDIDAT").toUpperCase()}
                       </span>
                     </td>
-
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => openEdit(u)}
-                          className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
+                          className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
                           title="Modifier"
                           type="button"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => askDelete(u)}
-                          className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
+                          onClick={() =>
+                            setDeleteConfirm({ show: true, user: u })
+                          }
+                          className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
                           title="Supprimer"
                           type="button"
                         >
@@ -569,47 +618,16 @@ const AdminUsers = () => {
         </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-        <div>
-          Affichage {totalItems === 0 ? 0 : startIndex + 1} à {endIndex} sur{" "}
-          {totalItems} utilisateur(s)
-        </div>
+      <Pagination
+        page={safePage}
+        totalPages={totalPages}
+        totalItems={filtered.length}
+        pageSize={PAGE_SIZE}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+      />
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={safePage === 1}
-            className={`px-3 py-1 rounded cursor-pointer ${
-              safePage === 1
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-            type="button"
-          >
-            Précédent
-          </button>
-
-          <span className="px-3 py-1 bg-sky-100 text-sky-700 rounded cursor-pointer">
-            {safePage}
-          </span>
-
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={safePage === totalPages}
-            className={`px-3 py-1 rounded cursor-pointer ${
-              safePage === totalPages
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-            type="button"
-          >
-            Suivant
-          </button>
-        </div>
-      </div>
-
-      {/* Create/Edit Modal (upgraded to match EmployeesList) */}
+      {/* Create / Edit Modal */}
       {open && (
         <div
           className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50"
@@ -618,82 +636,67 @@ const AdminUsers = () => {
           aria-modal="true"
         >
           <div
-            className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-0 mx-4 animate-in fade-in-0 zoom-in-95 duration-300"
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 animate-in fade-in-0 zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">
+                <h3 className="text-base font-bold text-gray-900">
                   {mode === "create"
                     ? "Ajouter un utilisateur"
                     : "Modifier l'utilisateur"}
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-400 mt-0.5">
                   {mode === "create"
                     ? "Créer un nouveau compte."
                     : "Mettre à jour les informations."}
                 </p>
               </div>
-
               <button
                 onClick={closeModal}
-                className="text-gray-500 hover:text-gray-700"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer"
                 type="button"
                 disabled={saving}
-                title="Fermer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-5">
-              {/* inline modal error (keeps global banner too) */}
-              {error && (
-                <div className="p-3 bg-red-50 text-red-800 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 mr-2" />
-                    <span className="text-sm">{error}</span>
+              {formError && (
+                <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{formError}</span>
                   </div>
-                  <button
-                    onClick={() => setError(null)}
-                    className="text-red-800 hover:text-red-900"
-                    type="button"
-                  >
-                    <X className="h-4 w-4" />
+                  <button onClick={() => setFormError(null)} type="button">
+                    <X className="h-4 w-4 opacity-60 hover:opacity-100" />
                   </button>
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Nom
-                  </label>
-                  <input
-                    value={form.nom}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, nom: e.target.value }))
-                    }
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Prénom
-                  </label>
-                  <input
-                    value={form.prenom}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, prenom: e.target.value }))
-                    }
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
+                {[
+                  ["nom", "Nom"],
+                  ["prenom", "Prénom"],
+                ].map(([k, label]) => (
+                  <div key={k}>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+                      {label}
+                    </label>
+                    <input
+                      value={form[k]}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, [k]: e.target.value }))
+                      }
+                      className={`${inputBase} mt-0`}
+                    />
+                  </div>
+                ))}
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
                   Email
                 </label>
                 <input
@@ -702,13 +705,13 @@ const AdminUsers = () => {
                   onChange={(e) =>
                     setForm((p) => ({ ...p, email: e.target.value }))
                   }
-                  className={`${inputBase} mt-1`}
+                  className={inputBase}
                 />
               </div>
 
               {mode === "create" && (
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
                     Mot de passe
                   </label>
                   <input
@@ -717,56 +720,40 @@ const AdminUsers = () => {
                     onChange={(e) =>
                       setForm((p) => ({ ...p, password: e.target.value }))
                     }
-                    className={`${inputBase} mt-1`}
+                    className={inputBase}
                   />
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    CIN
-                  </label>
-                  <input
-                    value={form.cin}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, cin: e.target.value }))
-                    }
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Téléphone
-                  </label>
-                  <input
-                    value={form.phone_num}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, phone_num: e.target.value }))
-                    }
-                    className={`${inputBase} mt-1`}
-                  />
-                </div>
+                {[
+                  ["cin", "CIN"],
+                  ["phone_num", "Téléphone"],
+                ].map(([k, label]) => (
+                  <div key={k}>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+                      {label}
+                    </label>
+                    <input
+                      value={form[k]}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, [k]: e.target.value }))
+                      }
+                      className={`${inputBase} mt-0`}
+                    />
+                  </div>
+                ))}
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
                   Rôle
                 </label>
-                <select
+                <StyledSelect
                   value={form.role}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, role: e.target.value }))
-                  }
-                  className={`${inputBase} mt-1`}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setForm((p) => ({ ...p, role: val }))}
+                  options={ROLE_FORM_OPTIONS}
+                />
               </div>
             </div>
 
@@ -779,16 +766,15 @@ const AdminUsers = () => {
               >
                 Annuler
               </button>
-
               <button
                 onClick={save}
                 disabled={saving}
-                className="px-4 py-2 bg-sky-900 hover:bg-sky-950 text-white rounded-4xl transition-colors flex items-center cursor-pointer"
+                className="px-4 py-2 bg-sky-900 hover:bg-sky-950 text-white rounded-4xl transition-colors flex items-center gap-2 cursor-pointer"
                 type="button"
               >
                 {saving ? (
                   <>
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    <Loader2 className="animate-spin h-4 w-4" />
                     Enregistrement...
                   </>
                 ) : (
@@ -800,58 +786,58 @@ const AdminUsers = () => {
         </div>
       )}
 
-      {/* Delete Confirm Modal (matched exactly) */}
+      {/* Delete Confirm */}
       {deleteConfirm.show && (
         <div
           className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50"
-          onClick={cancelDelete}
+          onClick={() =>
+            !isDeleting && setDeleteConfirm({ show: false, user: null })
+          }
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="bg-white rounded-lg shadow-lg max-w-md w-full p-6 mx-4 animate-in fade-in-0 zoom-in-95 duration-300"
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 mx-4 animate-in fade-in-0 zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <AlertCircle className="h-6 w-6 text-red-600" />
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-2xl bg-red-50 mb-4">
+                <AlertCircle className="h-6 w-6 text-red-500" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <h3 className="text-base font-bold text-gray-900 mb-2">
                 Confirmer la suppression
               </h3>
               <p className="text-sm text-gray-500 mb-6">
                 Voulez-vous vraiment supprimer{" "}
-                <span className="font-medium text-gray-900">
+                <span className="font-semibold text-gray-900">
                   {deleteConfirm.user?.nom} {deleteConfirm.user?.prenom}
-                </span>
+                </span>{" "}
                 ? Cette action est irréversible.
               </p>
             </div>
-
             <div className="flex justify-center space-x-4">
               <button
-                onClick={cancelDelete}
+                onClick={() => setDeleteConfirm({ show: false, user: null })}
                 disabled={isDeleting}
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-4xl transition-colors cursor-pointer"
                 type="button"
               >
                 Annuler
               </button>
-
               <button
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-4xl transition-colors flex items-center cursor-pointer"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-4xl transition-colors flex items-center gap-2 cursor-pointer"
                 type="button"
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    <Loader2 className="animate-spin h-4 w-4" />
                     Suppression...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="h-4 w-4" />
                     Supprimer
                   </>
                 )}

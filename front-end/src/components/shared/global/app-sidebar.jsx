@@ -32,9 +32,9 @@ import {
   CANDIDATE_PROGRAMS_ROUTE,
   CANDIDATE_UPLOAD_DOCS_ROUTE,
   CANDIDATE_RESULT_ROUTE,
+  EVALUATEUR_CANDIDATES_ROUTE,
 } from "../../../routes/Routes";
 
-/* ===================== NAV DEFINITIONS ===================== */
 
 // ADMIN
 const adminNav = [
@@ -53,11 +53,9 @@ const candidateNav = [
 
 // EVALUATEUR
 const evaluateurNav = [
-  { title: "Tableau de bord", url: "/evaluateur/dashboard", icon: IconDashboard },
-  { title: "Candidats", url: "/evaluateur/candidates", icon: IconUsers },
+  { title: "Candidats", url: EVALUATEUR_CANDIDATES_ROUTE, icon: IconUsers },
 ];
 
-/* ===================== ROLE CONFIG ===================== */
 
 const roleConfig = {
   ADMIN: {
@@ -86,7 +84,6 @@ const roleConfig = {
   },
 };
 
-/* ===================== COMPONENT ===================== */
 
 export function AppSidebar({ ...props }) {
   const { user } = useContext(AuthContext);
@@ -94,7 +91,6 @@ export function AppSidebar({ ...props }) {
 
   const config = roleConfig[role];
 
-  // Safety fallback (should not happen if auth is correct)
   if (!config) return null;
 
   const sidebarUser = {

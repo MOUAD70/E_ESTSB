@@ -1,9 +1,9 @@
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import current_app
+from werkzeug.security import check_password_hash, generate_password_hash
 
-# Authentication Helpers
-def hash_password(password):
+
+def hash_password(password: str) -> str:
     return generate_password_hash(password)
 
-def verify_password(password, hashed):
+
+def verify_password(password: str, hashed: str) -> bool:
     return check_password_hash(hashed, password)

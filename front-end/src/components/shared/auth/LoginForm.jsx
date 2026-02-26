@@ -8,7 +8,7 @@ import { AuthContext } from "../../../context/AuthContext.jsx";
 import {
   ADMIN_DASHBOARD_ROUTE,
   CANDIDAT_APPLY_ROUTE,
-  EVALUATEUR_DASHBOARD_ROUTE,
+  EVALUATEUR_CANDIDATES_ROUTE,
   REGISTER_ROUTE,
 } from "../../../routes/Routes.jsx";
 
@@ -67,7 +67,7 @@ export function LoginForm({ className, ...props }) {
         navigate(ADMIN_DASHBOARD_ROUTE);
       } else if (user.role === "EVALUATEUR") {
         flash("Connexion réussie !", "success");
-        navigate(EVALUATEUR_DASHBOARD_ROUTE);
+        navigate(EVALUATEUR_CANDIDATES_ROUTE);
       } else {
         flash("Connexion réussie !", "success");
         navigate(CANDIDAT_APPLY_ROUTE);

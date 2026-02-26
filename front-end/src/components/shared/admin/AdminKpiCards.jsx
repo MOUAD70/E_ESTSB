@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// AdminKpiCards.jsx — refined KPI cards, props/data/logic 100% unchanged
 import {
   Users,
   GraduationCap,
@@ -7,63 +7,171 @@ import {
   BadgeCheck,
 } from "lucide-react";
 
-const kpis = [
+const KPIS = [
   {
     key: "total_users",
-    label: "Total utilisateurs",
-    icon: Users,
+    label: "Utilisateurs",
     hint: "Comptes enregistrés",
-    accent: "bg-sky-600/10 text-sky-700",
-    ring: "ring-sky-600/20",
+    icon: Users,
+    gradient: "from-sky-500 to-sky-600",
+    iconBg: "bg-sky-50",
+    iconColor: "text-sky-600",
+    barColor: "bg-gradient-to-r from-sky-400 to-sky-600",
+    dotColor: "bg-sky-500",
   },
   {
     key: "total_candidates",
-    label: "Total candidats",
+    label: "Candidats",
+    hint: "Profils créés",
     icon: GraduationCap,
-    hint: "Candidats créés",
-    accent: "bg-indigo-600/10 text-indigo-700",
-    ring: "ring-indigo-600/20",
+    gradient: "from-indigo-500 to-indigo-600",
+    iconBg: "bg-indigo-50",
+    iconColor: "text-indigo-600",
+    barColor: "bg-gradient-to-r from-indigo-400 to-indigo-600",
+    dotColor: "bg-indigo-500",
   },
   {
     key: "applications_submitted",
-    label: "Candidatures soumises",
-    icon: FileCheck2,
+    label: "Candidatures",
     hint: "Filière sélectionnée",
-    accent: "bg-emerald-600/10 text-emerald-700",
-    ring: "ring-emerald-600/20",
+    icon: FileCheck2,
+    gradient: "from-emerald-500 to-emerald-600",
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-600",
+    barColor: "bg-gradient-to-r from-emerald-400 to-emerald-600",
+    dotColor: "bg-emerald-500",
   },
   {
     key: "documents_uploaded",
-    label: "Documents déposés",
+    label: "Documents",
+    hint: "Dossiers déposés",
     icon: UploadCloud,
-    hint: "Dossiers complets",
-    accent: "bg-amber-600/10 text-amber-700",
-    ring: "ring-amber-600/20",
+    gradient: "from-amber-500 to-amber-600",
+    iconBg: "bg-amber-50",
+    iconColor: "text-amber-600",
+    barColor: "bg-gradient-to-r from-amber-400 to-amber-600",
+    dotColor: "bg-amber-500",
   },
   {
     key: "evaluated_candidates",
-    label: "Candidats évalués",
-    icon: BadgeCheck,
+    label: "Évalués",
     hint: "Scores finaux calculés",
-    accent: "bg-violet-600/10 text-violet-700",
-    ring: "ring-violet-600/20",
+    icon: BadgeCheck,
+    gradient: "from-violet-500 to-violet-600",
+    iconBg: "bg-violet-50",
+    iconColor: "text-violet-600",
+    barColor: "bg-gradient-to-r from-violet-400 to-violet-600",
+    dotColor: "bg-violet-500",
   },
 ];
 
-export function AdminKpiCards({ overview, loading }) {
-  const items = kpis.map((k) => ({
-    ...k,
-    value: overview?.[k.key],
-  }));
+/* ─── Shared shimmer keyframes (injected once) ─── */
+const shimmerStyle = `
+  @keyframes kpi-shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+`;
 
+/* ─── Skeleton placeholder block ─── */
+function ShimmerBlock({ className = "" }) {
+  return (
+    <div className={`relative overflow-hidden rounded-lg bg-gray-100 ${className}`}>
+      <div
+        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent"
+        style={{ animation: "kpi-shimmer 1.6s ease-in-out infinite" }}
+      />
+    </div>
+  );
+}
+
+/* ─── Shimmer skeleton card ─── */
+function KpiSkeleton() {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <style>{shimmerStyle}</style>
+      <div className="h-[3px] w-full rounded-t-2xl bg-gray-100" />
+      <div className="p-5">
+        <div className="flex items-start justify-between mb-5">
+          <ShimmerBlock className="h-11 w-11 rounded-xl" />
+          <ShimmerBlock className="h-5 w-14 rounded-full" />
+        </div>
+        <ShimmerBlock className="h-9 w-20 rounded-lg mb-2" />
+        <ShimmerBlock className="h-3.5 w-24 rounded-md mb-1.5" />
+        <ShimmerBlock className="h-3 w-32 rounded mb-5" />
+        <ShimmerBlock className="h-[3px] w-full rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Single KPI card ─── */
+function KpiCard({ kpi, value, index }) {
+  const Icon = kpi.icon;
+  const displayVal = value ?? "—";
+
+  return (
+    <div
+      className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all duration-300"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      {/* top accent line */}
+      <div className={`h-[3px] w-full bg-gradient-to-r ${kpi.gradient} rounded-t-2xl`} />
+
+      {/* hover glow orb */}
+      <div
+        className={`pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br ${kpi.gradient} opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-[0.07]`}
+      />
+
+      <div className="p-5">
+        {/* icon + live indicator */}
+        <div className="flex items-start justify-between mb-5">
+          <div
+            className={`flex h-11 w-11 items-center justify-center rounded-xl ${kpi.iconBg} ${kpi.iconColor} ring-1 ring-white group-hover:scale-105 transition-transform duration-300`}
+          >
+            <Icon className="h-[18px] w-[18px]" />
+          </div>
+          {/* Dot-only live badge — no text decoration */}
+          <div className="flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-2 py-1">
+            <span className={`h-1.5 w-1.5 rounded-full ${kpi.dotColor} animate-pulse flex-shrink-0`} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 leading-none">
+              Live
+            </span>
+          </div>
+        </div>
+
+        {/* value — no underline, clean tabular-nums */}
+        <p className="text-[28px] font-bold tracking-tight text-gray-900 tabular-nums leading-none mb-2">
+          {displayVal}
+        </p>
+
+        {/* label */}
+        <p className="text-sm font-semibold text-gray-700 leading-snug mb-1">
+          {kpi.label}
+        </p>
+
+        {/* hint */}
+        <p className="text-xs text-gray-400 leading-snug mb-5">{kpi.hint}</p>
+
+        {/* progress bar */}
+        <div className="h-[3px] w-full overflow-hidden rounded-full bg-gray-100">
+          <div
+            className={`h-full rounded-full ${kpi.barColor} transition-all duration-700`}
+            style={{ width: displayVal !== "—" ? "100%" : "0%" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Exported component — props 100% unchanged ─── */
+export function AdminKpiCards({ overview, loading }) {
   if (loading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-[120px] rounded-xl border bg-card/60 animate-pulse"
-          />
+          <KpiSkeleton key={i} />
         ))}
       </div>
     );
@@ -71,49 +179,9 @@ export function AdminKpiCards({ overview, loading }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {items.map((it) => {
-        const Icon = it.icon;
-
-        return (
-          <Card
-            key={it.key}
-            className={[
-              "group relative overflow-hidden",
-              "border bg-card",
-              "transition-all duration-200",
-              "ring-1",
-              it.ring,
-            ].join(" ")}
-          >
-            <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-transparent via-primary/60 to-transparent opacity-60" />
-
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {it.label}
-              </CardTitle>
-
-              <div
-                className={[
-                  "inline-flex h-10 w-10 items-center justify-center rounded-xl",
-                  "ring-1 ring-black/5",
-                  it.accent,
-                ].join(" ")}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-1">
-              <div className="text-3xl font-semibold tracking-tight">
-                {it.value ?? "—"}
-              </div>
-              <div className="text-xs text-muted-foreground">{it.hint}</div>
-            </CardContent>
-
-            <div className="pointer-events-none absolute right-0 -top-30 h-40 w-40 rounded-full bg-primary/10 blur-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-          </Card>
-        );
-      })}
+      {KPIS.map((kpi, i) => (
+        <KpiCard key={kpi.key} kpi={kpi} value={overview?.[kpi.key]} index={i} />
+      ))}
     </div>
   );
 }

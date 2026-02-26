@@ -16,7 +16,6 @@ export const ADMIN_USERS_ROUTE = "/admin/users";
 export const ADMIN_FINAL_SCORES_ROUTE = "/admin/final-scores";
 
 // JURY
-export const EVALUATEUR_DASHBOARD_ROUTE = "/evaluateur/dashboard";
 export const EVALUATEUR_CANDIDATES_ROUTE = "/evaluateur/candidates";
 export const EVALUATEUR_CANDIDATE_DETAILS_ROUTE = "/evaluateur/candidates/:id";
 

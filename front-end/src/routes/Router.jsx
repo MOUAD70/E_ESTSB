@@ -19,7 +19,6 @@ import {
   CANDIDATE_UPLOAD_DOCS_ROUTE,
   CANDIDATE_RESULT_ROUTE,
   EVALUATEUR_CANDIDATES_ROUTE,
-  EVALUATEUR_DASHBOARD_ROUTE,
   EVALUATEUR_CANDIDATE_DETAILS_ROUTE,
 } from "./Routes";
 import GlobalLayout from "../layouts/GlobalLayout";
@@ -36,7 +35,6 @@ import AddDocuments from "../pages/common/candidate/AddDocuments";
 import CResults from "../pages/common/candidate/CResults";
 import EvaluateurLayout from "../layouts/EvaluateurLayout";
 import Candidates from "../pages/common/evaluateur/Candidates";
-import EDashboard from "../pages/common/evaluateur/EDashboard";
 import CandidateDetails from "../pages/common/evaluateur/CandidateDetails";
 
 export const router = createBrowserRouter([
@@ -93,10 +91,6 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      {
-        path: EVALUATEUR_DASHBOARD_ROUTE,
-        element: <EDashboard />,
-      },
       {
         path: EVALUATEUR_CANDIDATES_ROUTE,
         element: <Candidates />,

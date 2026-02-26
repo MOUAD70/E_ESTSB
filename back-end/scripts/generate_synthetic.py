@@ -6,7 +6,7 @@ import os
 random.seed(42)
 np.random.seed(42)
 
-num_samples = 15000
+num_samples = 100000
 
 diplomes = ["DUT", "BTS", "DEUG", "DEUST", "DTS"]
 branches = [
@@ -18,20 +18,20 @@ branches = [
 bac_types = ["SCIENCE", "ECO", "TECH", "LETTRES"]
 filieres = ["Bachelor ISITW", "Bachelor CSTC", "Bachelor BDAPA", "Bachelor CCA", "Bachelor GCF"]
 
-# filiere difficulty (bigger = harder)
+# filiere difficulty
 filiere_bias = {
     "Bachelor ISITW": 0.06,
-    "Bachelor CSTC": 0.10,
-    "Bachelor BDAPA": 0.04,
-    "Bachelor CCA": 0.05,
-    "Bachelor GCF": 0.05
+    "Bachelor CSTC": 0.06,
+    "Bachelor BDAPA": 0.06,
+    "Bachelor CCA": 0.06,
+    "Bachelor GCF": 0.06
 }
 
 # diploma slight advantage
-diplome_bonus = {"DTS": 0.03, "DUT": 0.02, "BTS": 0.01, "DEUG": 0.00, "DEUST": 0.00}
+diplome_bonus = {"DTS": 0.02, "DUT": 0.03, "BTS": 0.02, "DEUG": 0.01, "DEUST": 0.01}
 
-# bac type slight advantage (optional)
-bac_bonus = {"SCIENCE": 0.02, "TECH": 0.01, "ECO": 0.00, "LETTRES": -0.01}
+# bac type slight advantage
+bac_bonus = {"SCIENCE": 0.02, "TECH": 0.02, "ECO": 0.02, "LETTRES": -0.01}
 
 # branch match advantage per filiere (simple mapping)
 branch_match = {
@@ -58,20 +58,19 @@ for _ in range(num_samples):
     bac_type = random.choice(bac_types)
     filiere = random.choice(filieres)
 
-    moy_bac = round(random.uniform(10, 19), 2)  # kept only for DB consistency
+    moy_bac = round(random.uniform(10, 19), 2)
 
     # generate semester marks with correlation (more realistic)
-    base_level = np.random.normal(11.7, 2.4)   # student "global level"
+    base_level = np.random.normal(11.7, 2.4)
     m_s1 = round(clip20(np.random.normal(base_level, 1.8)), 2)
     m_s2 = round(clip20(np.random.normal(base_level, 1.8)), 2)
     m_s3 = round(clip20(np.random.normal(base_level, 2.0)), 2)
     m_s4 = round(clip20(np.random.normal(base_level, 2.0)), 2)
 
     avg_sem = (m_s1 + m_s2 + m_s3 + m_s4) / 4
-    std_sem = np.std([m_s1, m_s2, m_s3, m_s4])        # consistency
-    trend = (m_s4 - m_s1) / 20.0                      # improvement
+    std_sem = np.std([m_s1, m_s2, m_s3, m_s4])
+    trend = (m_s4 - m_s1) / 20.0
 
-    # 🚫 HARD DISQUALIFICATION
     if avg_sem < 10:
         selected = 0
         forced_reject += 1
@@ -93,8 +92,8 @@ for _ in range(num_samples):
         base -= filiere_bias[filiere]
 
         # penalize instability, reward positive trend
-        base -= (std_sem / 20.0) * 0.25   # strong instability lowers probability
-        base += trend * 0.08              # improving helps a bit
+        base -= (std_sem / 20.0) * 0.25
+        base += trend * 0.08
 
         # slight noise
         base += np.random.normal(0, 0.01)
