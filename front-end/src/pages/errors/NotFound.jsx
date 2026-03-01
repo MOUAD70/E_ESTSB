@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "../../components/ui/button";
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -16,7 +15,14 @@ const NotFound = () => {
         <p className="text-gray-600 mt-8 text-lg mb-4">
           Sorry, the page you're looking for doesn't exist.
         </p>
-        <Button onClick={() => navigate(-1)}>Go Back</Button>
+
+        <button
+          onClick={() => navigate(-1)}
+          type="button"
+          className="px-4 py-2 rounded-4xl bg-sky-900 hover:bg-sky-950 text-white text-sm font-medium transition-colors duration-150 cursor-pointer inline-flex items-center justify-center"
+        >
+          Go Back
+        </button>
       </div>
     </div>
   );
