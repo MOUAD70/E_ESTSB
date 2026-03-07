@@ -1,4 +1,3 @@
-// AdminResults.jsx — refined: unified KPI cards, sort filters, all logic unchanged
 import { useEffect, useMemo, useState, useRef } from "react";
 import { services } from "@/utils/services";
 import {
@@ -12,14 +11,11 @@ import {
   Check,
 } from "lucide-react";
 import { AlertBanner } from "@/components/shared/global/AlertBanner";
+import { useFlash } from "@/context/FlashContext";
 import { Pagination } from "@/components/shared/global/Pagination";
 import { useAlert } from "@/hooks/useAlert";
 
 const PAGE_SIZE = 10;
-
-/* ── Unchanged ── */
-const inputBase =
-  "w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-sky-500 focus:border-sky-500";
 
 /* ─── Sort options ─── */
 const SORT_OPTIONS = [
@@ -205,6 +201,7 @@ const AdminResults = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const { success, error, setSuccess, setError } = useAlert();
+  const { flash } = useFlash();
 
   const [q, setQ] = useState("");
   const [filiereFilter, setFiliereFilter] = useState("ALL");
@@ -324,10 +321,14 @@ const AdminResults = () => {
     setSuccess(null);
     try {
       const res = await services.admin.runAiScoring();
-      setSuccess(res?.msg || "Scoring IA terminé.");
+      const successMsg = res?.msg || "Scoring IA terminé.";
+      setSuccess(successMsg);
+      flash(successMsg, "success");
       await loadResults();
     } catch (err) {
-      setError(err?.response?.data?.msg || err.message || "Erreur scoring IA");
+      const errorMsg = err?.response?.data?.msg || err.message || "Erreur scoring IA";
+      setError(errorMsg);
+      flash(errorMsg, "error");
     } finally {
       setAiRunning(false);
     }
@@ -339,12 +340,14 @@ const AdminResults = () => {
     setSuccess(null);
     try {
       const res = await services.admin.computeFinalScores();
-      setSuccess(res?.msg || "Scores finaux calculés.");
+      const successMsg = res?.msg || "Scores finaux calculés.";
+      setSuccess(successMsg);
+      flash(successMsg, "success");
       await loadResults();
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Erreur scores finaux",
-      );
+      const errorMsg = err?.response?.data?.msg || err.message || "Erreur scores finaux";
+      setError(errorMsg);
+      flash(errorMsg, "error");
     } finally {
       setFinalRunning(false);
     }

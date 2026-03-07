@@ -1,10 +1,10 @@
-// CandidateAddDocuments.jsx — visual polish only, ALL logic 100% unchanged
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { services } from "@/utils/services";
 import { Input } from "@/components/ui/input";
 import { AlertBanner } from "@/components/shared/global/AlertBanner";
 import { useAlert } from "@/hooks/useAlert";
+import { useFlash } from "@/context/FlashContext";
 import {
   BadgeCheck,
   AlertCircle,
@@ -82,12 +82,12 @@ function StateCard({
       <div className="w-full max-w-lg mt-8">
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow duration-300">
           <div
-            className={`h-[3px] w-full rounded-t-2xl bg-gradient-to-r ${gradient}`}
+            className={`h-[3px] w-full rounded-t-2xl bg-linear-to-r ${gradient}`}
           />
           <div className="p-6">
             <div className="flex items-start gap-4">
               <div
-                className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
               >
                 <Icon className={`h-5 w-5 ${iconColor}`} />
               </div>
@@ -103,7 +103,7 @@ function StateCard({
             </div>
             <div className="mt-5 h-[3px] w-full overflow-hidden rounded-full bg-gray-100">
               <div
-                className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
+                className={`h-full rounded-full bg-linear-to-r ${gradient}`}
                 style={{ width: "100%" }}
               />
             </div>
@@ -127,6 +127,7 @@ const CandidateAddDocuments = () => {
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const { success, error, setSuccess, setError, clearAll } = useAlert();
+  const { flash } = useFlash();
 
   const loadProfile = async () => {
     setChecking(true);
@@ -211,15 +212,17 @@ const CandidateAddDocuments = () => {
       const fd = new FormData();
       for (const r of REQUIRED) fd.append(r.key, files[r.key]);
       const res = await services.candidate.uploadDocs(fd);
-      setSuccess(res?.msg || "Documents envoyés avec succès");
+      const successMsg = res?.msg || "Documents envoyés avec succès";
+      setSuccess(successMsg);
+      flash(successMsg, "success");
       setConfirm(false);
       resetFiles();
       await loadProfile();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Erreur lors de l'envoi",
-      );
+      const errorMsg = err?.response?.data?.msg || err.message || "Erreur lors de l'envoi";
+      setError(errorMsg);
+      flash(errorMsg, "error");
     } finally {
       setSaving(false);
     }
@@ -359,7 +362,7 @@ const CandidateAddDocuments = () => {
       {/* ── Progress KPI card ── */}
       <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm mb-5">
         <div
-          className={`h-[3px] w-full rounded-t-2xl bg-gradient-to-r transition-all duration-500 ${
+          className={`h-[3px] w-full rounded-t-2xl bg-linear-to-r transition-all duration-500 ${
             doneCount === REQUIRED.length
               ? "from-emerald-400 to-emerald-600"
               : "from-sky-400 to-sky-600"
@@ -394,8 +397,8 @@ const CandidateAddDocuments = () => {
             <div
               className={`h-full rounded-full transition-all duration-700 ${
                 doneCount === REQUIRED.length
-                  ? "bg-gradient-to-r from-emerald-400 to-emerald-600"
-                  : "bg-gradient-to-r from-sky-400 to-sky-600"
+                  ? "bg-linear-to-r from-emerald-400 to-emerald-600"
+                  : "bg-linear-to-r from-sky-400 to-sky-600"
               }`}
               style={{ width: `${progressPct}%` }}
             />
@@ -451,7 +454,7 @@ const CandidateAddDocuments = () => {
                 {/* Icon + labels */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <div
-                    className={`h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl transition-colors duration-200 ${
+                    className={`h-11 w-11 shrink-0 flex items-center justify-center rounded-xl transition-colors duration-200 ${
                       ok ? "bg-emerald-50" : "bg-sky-50 group-hover:bg-sky-100"
                     }`}
                   >
@@ -478,7 +481,7 @@ const CandidateAddDocuments = () => {
                 </div>
 
                 {/* File input — unchanged component */}
-                <div className="md:w-[320px] flex-shrink-0">
+                <div className="md:w-[320px] shrink-0">
                   <Input
                     type="file"
                     accept="application/pdf,.pdf"
@@ -525,7 +528,7 @@ const CandidateAddDocuments = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* top accent */}
-            <div className="h-[3px] w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-sky-600 -mt-6 mx-0 mb-6 rounded-none" />
+            <div className="h-[3px] w-full rounded-t-2xl bg-linear-to-r from-sky-400 to-sky-600 -mt-6 mx-0 mb-6 rounded-none" />
 
             <div className="text-center">
               <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-2xl bg-sky-50 mb-4">

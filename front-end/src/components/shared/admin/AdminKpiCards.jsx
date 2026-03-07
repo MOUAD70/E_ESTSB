@@ -1,4 +1,3 @@
-// AdminKpiCards.jsx — refined KPI cards, props/data/logic 100% unchanged
 import {
   Users,
   GraduationCap,

@@ -1,4 +1,3 @@
-"use client";
 import { Outlet } from "react-router-dom";
 import { FloatingNav } from "../../ui/aceternity/FloatingNavbar";
 import { IconHome, IconMessage, IconUser } from "@tabler/icons-react";

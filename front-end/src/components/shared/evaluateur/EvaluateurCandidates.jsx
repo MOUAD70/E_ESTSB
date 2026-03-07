@@ -1,4 +1,3 @@
-// EvaluateurCandidates.jsx — added filière filter + sort, ALL original logic unchanged
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { services } from "@/utils/services";
@@ -52,12 +51,12 @@ function StyledSelect({
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full min-w-[8rem] rounded-lg border border-gray-100 bg-white shadow-lg shadow-gray-200/60 py-1 animate-in fade-in-0 zoom-in-95 duration-100">
+        <div className="absolute z-50 mt-1 w-full min-w-32 rounded-lg border border-gray-100 bg-white shadow-lg shadow-gray-200/60 py-1 animate-in fade-in-0 zoom-in-95 duration-100">
           {options.map((opt) => {
             const isSel = opt.value === value;
             return (
@@ -72,7 +71,7 @@ function StyledSelect({
                 `}
               >
                 <span>{opt.label}</span>
-                {isSel && <Check className="h-3.5 w-3.5 flex-shrink-0 text-sky-600" />}
+                {isSel && <Check className="h-3.5 w-3.5 shrink-0 text-sky-600" />}
               </button>
             );
           })}
@@ -91,7 +90,7 @@ function Shimmer({ className = "" }) {
     <div className={`relative overflow-hidden bg-gray-100 ${className}`}>
       <style>{shimmerCSS}</style>
       <div
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent"
+        className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/70 to-transparent"
         style={{ animation: "ec-shimmer 1.6s ease-in-out infinite" }}
       />
     </div>
@@ -104,7 +103,7 @@ function RowSkeleton() {
     <tr className="border-b border-gray-50">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <Shimmer className="h-10 w-10 rounded-full flex-shrink-0" />
+          <Shimmer className="h-10 w-10 rounded-full shrink-0" />
           <div>
             <Shimmer className="h-3.5 w-32 rounded-md mb-2" />
             <Shimmer className="h-3 w-40 rounded" />
@@ -230,7 +229,7 @@ const EvaluateurCandidates = () => {
         <div className="flex flex-wrap gap-2 w-full sm:max-w-2xl">
 
           {/* Search */}
-          <div className="relative flex-1 min-w-[160px]">
+          <div className="relative flex-1 min-w-40">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               value={q}
@@ -258,7 +257,7 @@ const EvaluateurCandidates = () => {
           />
         </div>
 
-        <div className="text-sm text-gray-500 flex-shrink-0">
+        <div className="text-sm text-gray-500 shrink-0">
           {loading ? "Chargement…" : `${filtered.length} candidat(s)`}
         </div>
       </div>
@@ -304,7 +303,7 @@ const EvaluateurCandidates = () => {
                     {/* Candidat */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center ring-1 ring-gray-200">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-gray-100 flex items-center justify-center ring-1 ring-gray-200">
                           <User className="h-4 w-4 text-gray-500" />
                         </div>
                         <div>

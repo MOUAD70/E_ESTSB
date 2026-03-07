@@ -1,4 +1,3 @@
-// AdminUsers.jsx — refined: unified KPI cards, sort filter, all logic unchanged
 import { useEffect, useMemo, useState, useRef } from "react";
 import { services } from "@/utils/services";
 import {
@@ -10,12 +9,10 @@ import {
   Trash2,
   UserPlus,
   Loader2,
-  Shield,
   AlertCircle,
   Search,
   ChevronDown,
   Check,
-  ArrowUpDown,
 } from "lucide-react";
 import { AlertBanner } from "@/components/shared/global/AlertBanner";
 import { Pagination } from "@/components/shared/global/Pagination";
@@ -156,7 +153,6 @@ function StatCard({
   iconColor,
   gradient,
   barColor,
-  dotColor,
   pct = 100,
 }) {
   return (
@@ -398,7 +394,7 @@ const AdminUsers = () => {
     {
       label: "Administrateurs",
       value: stats.admins,
-      icon: Shield,
+      icon: User,
       iconBg: "bg-purple-50",
       iconColor: "text-purple-600",
       gradient: "from-purple-500 to-purple-600",
@@ -408,11 +404,11 @@ const AdminUsers = () => {
     {
       label: "Évaluateurs",
       value: stats.evals,
-      icon: Shield,
+      icon: User,
       iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      gradient: "from-blue-500 to-blue-600",
-      barColor: "bg-gradient-to-r from-blue-400 to-blue-600",
+      iconColor: "text-green-600",
+      gradient: "from-green-500 to-green-600",
+      barColor: "bg-gradient-to-r from-green-400 to-green-600",
       pct: stats.total > 0 ? (stats.evals / stats.total) * 100 : 0,
     },
   ];

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import FlashMessage from "../components/shared/global/FlashMessage";
 
 const FlashContext = createContext();
@@ -6,21 +6,18 @@ const FlashContext = createContext();
 export function FlashProvider({ children }) {
   const [message, setMessage] = useState(null);
 
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => setMessage(null), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
-
-  const flash = (msg, type = "success") => {
+  const flash = (msg, type = "success", duration = 4000) => {
     setMessage({ msg, type });
   };
 
+  const clearFlash = () => {
+    setMessage(null);
+  };
+
   return (
-    <FlashContext.Provider value={{ flash }}>
+    <FlashContext.Provider value={{ flash, clearFlash }}>
       {children}
-      <FlashMessage message={message} />
+      <FlashMessage message={message} onDismiss={clearFlash} />
     </FlashContext.Provider>
   );
 }

@@ -78,6 +78,7 @@ def admin_ai_score():
                 "branche_diplome": c.branche_diplome,
                 "bac_type": c.bac_type,
                 "filiere": filiere_name,
+                "moy_bac": float(c.moy_bac) if c.moy_bac is not None else 0.0,
                 "m_s1": float(c.m_s1),
                 "m_s2": float(c.m_s2),
                 "m_s3": float(c.m_s3),
@@ -113,8 +114,15 @@ def admin_ai_score():
 @jwt_required()
 @admin_only
 def compute_final_scores():
-    W_JURY = 0.60
-    W_AI = 0.40
+    # Read weights from GlobalSettings; fall back to 60/40 if not yet configured
+    settings = GlobalSettings.query.first()
+    if settings:
+        W_JURY = settings.human_weight / 100.0
+        W_AI = settings.ai_weight / 100.0
+    else:
+        W_JURY = 0.60
+        W_AI = 0.40
+        logger.warning("GlobalSettings not found — using default weights (60/40)")
 
     candidates = Candidat.query.filter(Candidat.filiere_id.isnot(None)).all()
     candidate_ids = [c.id for c in candidates]

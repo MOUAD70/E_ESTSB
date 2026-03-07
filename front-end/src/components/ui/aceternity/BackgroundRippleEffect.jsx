@@ -1,4 +1,3 @@
-"use client";;
 import { useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/aceternity/utils";
 

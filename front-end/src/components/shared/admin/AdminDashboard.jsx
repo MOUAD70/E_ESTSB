@@ -1,4 +1,3 @@
-// AdminDashboard.jsx — refined: responsive charts, consistent skeleton, all logic unchanged
 import { useEffect, useState } from "react";
 import { BadgeCheck, AlertCircle, X } from "lucide-react";
 

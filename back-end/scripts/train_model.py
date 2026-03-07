@@ -19,7 +19,7 @@ print("Loaded:", csv_path, df.shape)
 target = "selected"
 
 cat_cols = ["t_diplome", "branche_diplome", "bac_type", "filiere"]
-num_cols = ["m_s1", "m_s2", "m_s3", "m_s4"]
+num_cols = ["moy_bac", "m_s1", "m_s2", "m_s3", "m_s4"]
 
 X = df[cat_cols + num_cols]
 y = df[target]

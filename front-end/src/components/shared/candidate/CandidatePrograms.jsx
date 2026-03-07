@@ -1,4 +1,3 @@
-// CandidatePrograms.jsx — visual polish only, ALL logic 100% unchanged
 import { useEffect, useState } from "react";
 import { services } from "@/utils/services";
 import {
@@ -6,46 +5,10 @@ import {
   GraduationCap,
   CheckCircle,
   CheckCircle2,
-  AlertCircle,
 } from "lucide-react";
 import { AlertBanner } from "@/components/shared/global/AlertBanner";
 import { useAlert } from "@/hooks/useAlert";
-
-/* ─── Shimmer infrastructure ─── */
-const shimmerCSS = `
-  @keyframes cp-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
-`;
-function Shimmer({ className = "" }) {
-  return (
-    <div className={`relative overflow-hidden bg-gray-100 ${className}`}>
-      <style>{shimmerCSS}</style>
-      <div
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent"
-        style={{ animation: "cp-shimmer 1.6s ease-in-out infinite" }}
-      />
-    </div>
-  );
-}
-
-/* ─── Program card skeleton ─── */
-function ProgramSkeleton() {
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-      <Shimmer className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl" />
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shimmer className="h-11 w-11 rounded-xl flex-shrink-0" />
-          <div>
-            <Shimmer className="h-4 w-36 rounded-md mb-2" />
-            <Shimmer className="h-3 w-48 rounded" />
-          </div>
-        </div>
-        <Shimmer className="h-5 w-5 rounded-full flex-shrink-0" />
-      </div>
-      <Shimmer className="mt-4 h-[3px] w-full rounded-full" />
-    </div>
-  );
-}
+import { useFlash } from "@/context/FlashContext";
 
 /* ─── Full-page loading ─── */
 function PageLoader() {
@@ -127,6 +90,7 @@ export default function CandidatePrograms() {
   const [locked, setLocked] = useState(false);
   const [lockedMsg, setLockedMsg] = useState("");
   const { success, error, setSuccess, setError } = useAlert();
+  const { flash } = useFlash();
 
   useEffect(() => {
     const load = async () => {
@@ -165,12 +129,16 @@ export default function CandidatePrograms() {
     setSuccess(null);
     try {
       const res = await services.candidate.selectFiliere(selected);
-      setSuccess(res?.msg || "Filière sélectionnée avec succès.");
+      const successMsg = res?.msg || "Filière sélectionnée avec succès.";
+      setSuccess(successMsg);
+      flash(successMsg, "success");
       setLocked(true);
       setLockedMsg("Votre choix de filière a été enregistré.");
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err?.response?.data?.msg || err.message || "Erreur");
+      const errorMsg = err?.response?.data?.msg || err.message || "Erreur";
+      setError(errorMsg);
+      flash(errorMsg, "error");
     }
   };
 

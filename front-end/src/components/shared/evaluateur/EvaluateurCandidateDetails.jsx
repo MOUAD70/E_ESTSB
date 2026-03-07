@@ -1,4 +1,3 @@
-// EvaluateurCandidateDetails.jsx — visual polish only, ALL logic 100% unchanged
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { services } from "@/utils/services";
@@ -57,22 +56,6 @@ function buildDocUrl(raw) {
     : `${BACKEND}/uploads/${clean}`;
 }
 
-/* ─── Shimmer ─── */
-const shimmerCSS = `
-  @keyframes ecd-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
-`;
-function Shimmer({ className = "" }) {
-  return (
-    <div className={`relative overflow-hidden bg-gray-100 ${className}`}>
-      <style>{shimmerCSS}</style>
-      <div
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent"
-        style={{ animation: "ecd-shimmer 1.6s ease-in-out infinite" }}
-      />
-    </div>
-  );
-}
-
 /* ─── Full-page loading ─── */
 function PageLoader() {
   return (
@@ -97,7 +80,7 @@ function SectionCard({
     <div
       className={`overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow duration-300 ${className}`}
     >
-      <div className={`h-[3px] w-full bg-gradient-to-r ${accentGradient}`} />
+      <div className={`h-[3px] w-full bg-linear-to-r ${accentGradient}`} />
       {(headerTitle || headerSub) && (
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
           {headerTitle && (
@@ -223,7 +206,7 @@ export default function EvaluateurCandidateDetails() {
           <SectionCard accentGradient="from-red-400 to-red-600">
             <div className="p-6">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-red-50">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50">
                   <AlertCircle className="h-5 w-5 text-red-600" />
                 </div>
                 <div className="flex-1">
@@ -299,7 +282,7 @@ export default function EvaluateurCandidateDetails() {
           <div className="p-6">
             <div className="flex items-start gap-4">
               {/* avatar */}
-              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-sky-50 ring-1 ring-sky-100">
                 <User className="h-6 w-6 text-sky-600" />
               </div>
 
@@ -372,7 +355,7 @@ export default function EvaluateurCandidateDetails() {
             </div>
 
             <div className="mt-4 h-[3px] w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-sky-400 to-sky-600" />
+              <div className="h-full w-full rounded-full bg-linear-to-r from-sky-400 to-sky-600" />
             </div>
           </div>
         </SectionCard>
@@ -402,7 +385,7 @@ export default function EvaluateurCandidateDetails() {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl ${has ? "bg-indigo-50" : "bg-gray-100"}`}
+                      className={`h-11 w-11 shrink-0 flex items-center justify-center rounded-xl ${has ? "bg-indigo-50" : "bg-gray-100"}`}
                     >
                       {has ? (
                         <CheckCircle2 className="h-5 w-5 text-indigo-600" />
@@ -450,7 +433,7 @@ export default function EvaluateurCandidateDetails() {
             {/* Not-submitted warning */}
             {!isSubmitted && (
               <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-                <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-800">
                   Ce candidat n'est pas encore prêt pour l'évaluation.{" "}
                   <span className="font-semibold">
@@ -497,7 +480,7 @@ export default function EvaluateurCandidateDetails() {
               <button
                 onClick={saveNote}
                 disabled={!canSave}
-                className={`${btnPrimary(!canSave)} md:w-[220px] flex-shrink-0`}
+                className={`${btnPrimary(!canSave)} md:w-[220px] shrink-0`}
                 type="button"
               >
                 {saving ? (
@@ -519,7 +502,7 @@ export default function EvaluateurCandidateDetails() {
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   canSave || hasNote
-                    ? "bg-gradient-to-r from-emerald-400 to-emerald-600"
+                    ? "bg-linear-to-r from-emerald-400 to-emerald-600"
                     : "bg-gray-200"
                 }`}
                 style={{

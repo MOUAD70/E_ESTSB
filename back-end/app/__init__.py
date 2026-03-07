@@ -40,12 +40,14 @@ def create_app(config_class="config.Config"):
     from app.admin.routes import admin_bp
     from app.evaluateur.routes import evaluateur_bp
     from app.routes.upload_routes import uploads_bp
+    from app.routes.contact_routes import contact_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(candidate_bp, url_prefix="/api/candidate")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(evaluateur_bp, url_prefix="/api/evaluateur")
     app.register_blueprint(uploads_bp)
+    app.register_blueprint(contact_bp)
 
     return app
 

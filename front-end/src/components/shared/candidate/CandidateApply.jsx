@@ -1,4 +1,3 @@
-// CandidateApply.jsx — visual polish + StyledSelect, ALL logic 100% unchanged
 import { useEffect, useRef, useState } from "react";
 import { services } from "@/utils/services";
 import { BadgeCheck, Loader2, User, ChevronDown, Check } from "lucide-react";
@@ -113,7 +112,7 @@ function StyledSelect({
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -146,7 +145,7 @@ function StyledSelect({
               >
                 <span>{opt.label}</span>
                 {isSel && (
-                  <Check className="h-3.5 w-3.5 flex-shrink-0 text-sky-600" />
+                  <Check className="h-3.5 w-3.5 shrink-0 text-sky-600" />
                 )}
               </button>
             );
@@ -178,7 +177,7 @@ function FieldLabel({ children }) {
 function SectionHeader({ number, title, description }) {
   return (
     <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
-      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 mt-0.5">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700 mt-0.5">
         {number}
       </div>
       <div>
@@ -209,10 +208,10 @@ function LockedCard({ lockedMsg }) {
     <div className="min-h-screen bg-[#f7f8fa] px-6 py-7 flex items-start justify-center">
       <div className="w-full max-w-lg mt-8">
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow duration-300">
-          <div className="h-[3px] w-full rounded-t-2xl bg-gradient-to-r from-sky-400 to-sky-600" />
+          <div className="h-[3px] w-full rounded-t-2xl bg-linear-to-r from-sky-400 to-sky-600" />
           <div className="p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-sky-50">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-50">
                 <BadgeCheck className="h-5 w-5 text-sky-600" />
               </div>
               <div className="flex-1 min-w-0">
@@ -237,7 +236,7 @@ function LockedCard({ lockedMsg }) {
                       className="flex items-center gap-2 text-sm text-gray-600"
                     >
                       <span
-                        className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${i === 0 ? "bg-sky-500" : i === 1 ? "bg-emerald-500" : "bg-violet-500"}`}
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${i === 0 ? "bg-sky-500" : i === 1 ? "bg-emerald-500" : "bg-violet-500"}`}
                       />
                       {step}
                     </div>
@@ -246,7 +245,7 @@ function LockedCard({ lockedMsg }) {
               </div>
             </div>
             <div className="mt-5 h-[3px] w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full w-full rounded-full bg-gradient-to-r from-sky-400 to-sky-600" />
+              <div className="h-full w-full rounded-full bg-linear-to-r from-sky-400 to-sky-600" />
             </div>
           </div>
         </div>
