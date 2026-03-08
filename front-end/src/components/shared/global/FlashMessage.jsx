@@ -13,7 +13,7 @@ export default function FlashMessage({ message, onDismiss }) {
         if (onDismiss) {
           setTimeout(onDismiss, 300);
         }
-      }, 4000);
+      }, message.duration ?? 4000);
       return () => clearTimeout(timer);
     }
   }, [message, onDismiss]);

@@ -1,37 +1,25 @@
 import logging
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity
 
 from app import db
 from app.models.user_models import (
     Candidat, Documents, Evaluateur, Filiere, NoteEvaluateur, User,
 )
+from app.utils.decorators import role_required
 
 logger = logging.getLogger(__name__)
 
 evaluateur_bp = Blueprint("evaluateur", __name__, url_prefix="/api/evaluateur")
 
 
-def _require_evaluateur():
-    """Return (evaluateur, error_response). Call inside a jwt_required route."""
-    if (get_jwt().get("role") or "").upper() != "EVALUATEUR":
-        return None, (jsonify(msg="Accès réservé aux évaluateurs"), 403)
-
-    user_id = int(get_jwt_identity())
-    ev = Evaluateur.query.filter_by(user_id=user_id).first()
-    if not ev:
-        return None, (jsonify(msg="Profil évaluateur introuvable"), 404)
-
-    return ev, None
-
-
 @evaluateur_bp.route("/candidates/<int:candidat_id>", methods=["GET"])
-@jwt_required()
+@role_required('EVALUATEUR')
 def get_candidate_details(candidat_id):
-    ev, err = _require_evaluateur()
-    if err:
-        return err
+    ev = Evaluateur.query.filter_by(user_id=int(get_jwt_identity())).first()
+    if not ev:
+        return jsonify(msg="Profil évaluateur introuvable"), 404
 
     c = Candidat.query.get(candidat_id)
     if not c:
@@ -79,11 +67,11 @@ def get_candidate_details(candidat_id):
 
 
 @evaluateur_bp.route("/candidates", methods=["GET"])
-@jwt_required()
+@role_required('EVALUATEUR')
 def list_candidates():
-    ev, err = _require_evaluateur()
-    if err:
-        return err
+    ev = Evaluateur.query.filter_by(user_id=int(get_jwt_identity())).first()
+    if not ev:
+        return jsonify(msg="Profil évaluateur introuvable"), 404
 
     filiere_id = request.args.get("filiere_id", type=int)
     status = request.args.get("status", default="SUBMITTED", type=str)
@@ -134,11 +122,11 @@ def list_candidates():
 
 
 @evaluateur_bp.route("/notes", methods=["POST"])
-@jwt_required()
+@role_required('EVALUATEUR')
 def submit_note():
-    ev, err = _require_evaluateur()
-    if err:
-        return err
+    ev = Evaluateur.query.filter_by(user_id=int(get_jwt_identity())).first()
+    if not ev:
+        return jsonify(msg="Profil évaluateur introuvable"), 404
 
     data = request.get_json() or {}
     candidat_id = data.get("candidat_id")
@@ -177,11 +165,11 @@ def submit_note():
 
 
 @evaluateur_bp.route("/notes/<int:candidat_id>", methods=["PUT"])
-@jwt_required()
+@role_required('EVALUATEUR')
 def update_my_note(candidat_id):
-    ev, err = _require_evaluateur()
-    if err:
-        return err
+    ev = Evaluateur.query.filter_by(user_id=int(get_jwt_identity())).first()
+    if not ev:
+        return jsonify(msg="Profil évaluateur introuvable"), 404
 
     data = request.get_json() or {}
     note_eval = data.get("note_eval")
@@ -209,11 +197,11 @@ def update_my_note(candidat_id):
 
 
 @evaluateur_bp.route("/my-notes", methods=["GET"])
-@jwt_required()
+@role_required('EVALUATEUR')
 def my_notes():
-    ev, err = _require_evaluateur()
-    if err:
-        return err
+    ev = Evaluateur.query.filter_by(user_id=int(get_jwt_identity())).first()
+    if not ev:
+        return jsonify(msg="Profil évaluateur introuvable"), 404
 
     notes = (
         NoteEvaluateur.query

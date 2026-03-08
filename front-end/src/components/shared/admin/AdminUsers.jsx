@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
-import { services } from "@/utils/services";
+import { useState, useRef, useEffect } from "react";
 import {
   X,
   User,
@@ -14,12 +13,11 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import { AlertBanner } from "@/components/shared/global/AlertBanner";
 import { Pagination } from "@/components/shared/global/Pagination";
-import { useAlert } from "@/hooks/useAlert";
+import { useUsers, PAGE_SIZE } from "@/hooks/useUsers";
+import { useFlash } from "@/context/FlashContext";
 
 const ROLES = ["ADMIN", "EVALUATEUR", "CANDIDAT"];
-const PAGE_SIZE = 8;
 
 const emptyForm = {
   nom: "",
@@ -206,112 +204,225 @@ function StatCardSkeleton() {
   );
 }
 
-/* ─── Main component — ALL logic unchanged ─── */
+/* ─── Sub-component: UserTable ─── */
+function UserTable({ users, loading, onEdit, onDelete }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full divide-y divide-gray-100">
+          <thead className="bg-gray-50/80">
+            <tr>
+              {["Utilisateur", "Contact", "Identité", "Rôle", "Actions"].map(
+                (h, i) => (
+                  <th
+                    key={h}
+                    className={`px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 ${i === 4 ? "text-center" : ""}`}
+                  >
+                    {h}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 bg-white">
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-10">
+                  <div className="h-32 rounded-xl bg-gray-100 animate-pulse" />
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-14 text-center">
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
+                      <User className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Aucun utilisateur trouvé.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              users.map((u) => (
+                <tr key={u.id} className="hover:bg-gray-50/60 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 shrink-0 rounded-full bg-gray-100 flex items-center justify-center ring-1 ring-gray-200">
+                        <User className="h-4 w-4 text-gray-500" />
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-sm font-semibold text-gray-900">{u.nom} {u.prenom}</div>
+                        <div className="text-xs text-gray-400">ID: {u.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-700 flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5 text-gray-400 shrink-0" />{u.email}
+                    </div>
+                    <div className="text-sm text-gray-400 flex items-center gap-1.5 mt-1">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />{u.phone_num}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    <span className="text-gray-400">CIN: </span>
+                    <span className="font-medium">{u.cin}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold ${roleBadgeClass(u.role)}`}>
+                      {(u.role || "CANDIDAT").toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => onEdit(u)} className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer" title="Modifier" type="button">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => onDelete(u)} className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer" title="Supprimer" type="button">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Sub-component: UserFormModal ─── */
+function UserFormModal({ open, mode, form, setForm, formError, setFormError, saving, onClose, onSave }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 animate-in fade-in-0 zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100 flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-bold text-gray-900">
+              {mode === "create" ? "Ajouter un utilisateur" : "Modifier l'utilisateur"}
+            </h3>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {mode === "create" ? "Créer un nouveau compte." : "Mettre à jour les informations."}
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer" type="button" disabled={saving}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-6 space-y-5">
+          {formError && (
+            <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+              <button onClick={() => setFormError(null)} type="button">
+                <X className="h-4 w-4 opacity-60 hover:opacity-100" />
+              </button>
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[["nom", "Nom"], ["prenom", "Prénom"]].map(([k, label]) => (
+              <div key={k}>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">{label}</label>
+                <input value={form[k]} onChange={(e) => setForm((p) => ({ ...p, [k]: e.target.value }))} className={`${inputBase} mt-0`} />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Email</label>
+            <input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} className={inputBase} />
+          </div>
+          {mode === "create" && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Mot de passe</label>
+              <input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} className={inputBase} />
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[["cin", "CIN"], ["phone_num", "Téléphone"]].map(([k, label]) => (
+              <div key={k}>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">{label}</label>
+                <input value={form[k]} onChange={(e) => setForm((p) => ({ ...p, [k]: e.target.value }))} className={`${inputBase} mt-0`} />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">Rôle</label>
+            <StyledSelect value={form.role} onChange={(val) => setForm((p) => ({ ...p, role: val }))} options={ROLE_FORM_OPTIONS} />
+          </div>
+        </div>
+        <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3">
+          <button onClick={onClose} disabled={saving} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-4xl transition-colors cursor-pointer" type="button">Annuler</button>
+          <button onClick={onSave} disabled={saving} className="px-4 py-2 bg-sky-900 hover:bg-sky-950 text-white rounded-4xl transition-colors flex items-center gap-2 cursor-pointer" type="button">
+            {saving ? (<><Loader2 className="animate-spin h-4 w-4" />Enregistrement...</>) : "Enregistrer"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Sub-component: DeleteConfirmModal ─── */
+function DeleteConfirmModal({ user, isDeleting, onCancel, onConfirm }) {
+  if (!user) return null;
+  return (
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50" onClick={() => !isDeleting && onCancel()} role="dialog" aria-modal="true">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 mx-4 animate-in fade-in-0 zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-2xl bg-red-50 mb-4">
+            <AlertCircle className="h-6 w-6 text-red-500" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900 mb-2">Confirmer la suppression</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Voulez-vous vraiment supprimer{" "}
+            <span className="font-semibold text-gray-900">{user.nom} {user.prenom}</span>{" "}
+            ? Cette action est irréversible.
+          </p>
+        </div>
+        <div className="flex justify-center space-x-4">
+          <button onClick={onCancel} disabled={isDeleting} className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-4xl transition-colors cursor-pointer" type="button">Annuler</button>
+          <button onClick={onConfirm} disabled={isDeleting} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-4xl transition-colors flex items-center gap-2 cursor-pointer" type="button">
+            {isDeleting ? (<><Loader2 className="animate-spin h-4 w-4" />Suppression...</>) : (<><Trash2 className="h-4 w-4" />Supprimer</>)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main component — orchestrator ─── */
 const AdminUsers = () => {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { success, error, setSuccess, setError, clearAll } = useAlert();
+  const {
+    users, total, globalTotal, totalAdmins, totalEvals, totalPages,
+    loading,
+    q, setQ, roleFilter, setRoleFilter, sortBy, setSortBy,
+    page, setPage, fetchUsers, createUser, updateUser, deleteUser,
+  } = useUsers();
+  const { flash } = useFlash();
 
-  const [q, setQ] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState("default");
-  const [page, setPage] = useState(1);
-
+  // ── Modal state (UI-only, stays local) ──────────────────────────────────
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState("create");
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(null);
-
-  const [deleteConfirm, setDeleteConfirm] = useState({
-    show: false,
-    user: null,
-  });
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    clearAll();
-    try {
-      setUsers(await services.admin.getUsers());
-    } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Erreur de chargement",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    let list = users.filter((u) => {
-      const matchRole =
-        roleFilter === "ALL" || (u.role || "").toUpperCase() === roleFilter;
-      if (!matchRole) return false;
-      if (!s) return true;
-      return `${u.nom} ${u.prenom} ${u.email} ${u.cin} ${u.phone_num}`
-        .toLowerCase()
-        .includes(s);
-    });
-    // Sort
-    if (sortBy === "newest") list = [...list].reverse();
-    // "oldest" = natural order (default API order), "default" = same
-    return list;
-  }, [users, q, roleFilter, sortBy]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [q, roleFilter, sortBy, users.length]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paged = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
-
-  const stats = useMemo(
-    () => ({
-      total: users.length,
-      admins: users.filter((u) => (u.role || "").toUpperCase() === "ADMIN")
-        .length,
-      evals: users.filter((u) => (u.role || "").toUpperCase() === "EVALUATEUR")
-        .length,
-    }),
-    [users],
-  );
-
-  const openCreate = () => {
-    setMode("create");
-    setSelected(null);
-    setForm({ ...emptyForm });
-    setFormError(null);
-    setOpen(true);
-  };
+  const openCreate = () => { setMode("create"); setSelected(null); setForm({ ...emptyForm }); setFormError(null); setOpen(true); };
   const openEdit = (u) => {
-    setMode("edit");
-    setSelected(u);
-    setForm({
-      nom: u.nom || "",
-      prenom: u.prenom || "",
-      email: u.email || "",
-      password: "",
-      cin: u.cin || "",
-      phone_num: u.phone_num || "",
-      role: (u.role || "CANDIDAT").toUpperCase(),
-    });
-    setFormError(null);
-    setOpen(true);
+    setMode("edit"); setSelected(u);
+    setForm({ nom: u.nom || "", prenom: u.prenom || "", email: u.email || "", password: "", cin: u.cin || "", phone_num: u.phone_num || "", role: (u.role || "CANDIDAT").toUpperCase() });
+    setFormError(null); setOpen(true);
   };
-  const closeModal = () => {
-    if (!saving) setOpen(false);
-  };
+  const closeModal = () => { if (!saving) setOpen(false); };
 
   const validate = () => {
     if (!form.nom.trim()) return "Nom requis.";
@@ -320,158 +431,87 @@ const AdminUsers = () => {
     if (!form.cin.trim()) return "CIN requis.";
     if (!form.phone_num.trim()) return "Téléphone requis.";
     if (!form.role) return "Rôle requis.";
-    if (mode === "create" && !form.password.trim())
-      return "Mot de passe requis.";
+    if (mode === "create" && !form.password.trim()) return "Mot de passe requis.";
     return null;
   };
 
   const save = async () => {
     const msg = validate();
-    if (msg) {
-      setFormError(msg);
-      return;
-    }
-    setSaving(true);
-    setFormError(null);
+    if (msg) { setFormError(msg); return; }
+    setSaving(true); setFormError(null);
     try {
       if (mode === "create") {
-        await services.admin.createUser(form);
-        setSuccess("Utilisateur créé avec succès.");
+        await createUser(form);
       } else {
         const payload = {};
         if (form.nom !== selected.nom) payload.nom = form.nom;
         if (form.prenom !== selected.prenom) payload.prenom = form.prenom;
         if (form.email !== selected.email) payload.email = form.email;
         if (form.cin !== selected.cin) payload.cin = form.cin;
-        if (form.phone_num !== selected.phone_num)
-          payload.phone_num = form.phone_num;
+        if (form.phone_num !== selected.phone_num) payload.phone_num = form.phone_num;
         const prevRole = (selected.role || "CANDIDAT").toUpperCase();
         if (form.role !== prevRole) payload.role = form.role;
-        await services.admin.updateUser(selected.id, payload);
-        setSuccess("Utilisateur mis à jour avec succès.");
+        await updateUser(selected.id, payload);
       }
       setOpen(false);
-      await fetchUsers();
     } catch (err) {
-      setFormError(
-        err?.response?.data?.msg || err.message || "Une erreur est survenue",
-      );
+      setFormError(err?.response?.data?.msg || err.message || "Une erreur est survenue");
     } finally {
       setSaving(false);
     }
   };
 
   const confirmDelete = async () => {
-    const u = deleteConfirm.user;
-    if (!u) return;
+    if (!deleteTarget) return;
     setIsDeleting(true);
-    clearAll();
     try {
-      await services.admin.deleteUser(u.id);
-      setUsers((prev) => prev.filter((x) => x.id !== u.id));
-      setSuccess("Utilisateur supprimé avec succès.");
-      setDeleteConfirm({ show: false, user: null });
+      await deleteUser(deleteTarget.id);
+      setDeleteTarget(null);
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Suppression impossible",
-      );
+      flash(err?.response?.data?.msg || err.message || "Suppression impossible", "error");
     } finally {
       setIsDeleting(false);
     }
   };
 
   const statCards = [
-    {
-      label: "Total utilisateurs",
-      value: stats.total,
-      icon: User,
-      iconBg: "bg-sky-50",
-      iconColor: "text-sky-600",
-      gradient: "from-sky-500 to-sky-600",
-      barColor: "bg-gradient-to-r from-sky-400 to-sky-600",
-      pct: 100,
-    },
-    {
-      label: "Administrateurs",
-      value: stats.admins,
-      icon: User,
-      iconBg: "bg-purple-50",
-      iconColor: "text-purple-600",
-      gradient: "from-purple-500 to-purple-600",
-      barColor: "bg-gradient-to-r from-purple-400 to-purple-600",
-      pct: stats.total > 0 ? (stats.admins / stats.total) * 100 : 0,
-    },
-    {
-      label: "Évaluateurs",
-      value: stats.evals,
-      icon: User,
-      iconBg: "bg-blue-50",
-      iconColor: "text-green-600",
-      gradient: "from-green-500 to-green-600",
-      barColor: "bg-gradient-to-r from-green-400 to-green-600",
-      pct: stats.total > 0 ? (stats.evals / stats.total) * 100 : 0,
-    },
+    { label: "Total utilisateurs", value: globalTotal, icon: User, iconBg: "bg-sky-50", iconColor: "text-sky-600", gradient: "from-sky-500 to-sky-600", barColor: "bg-linear-to-r from-sky-400 to-sky-600", pct: 100 },
+    { label: "Administrateurs", value: totalAdmins, icon: User, iconBg: "bg-purple-50", iconColor: "text-purple-600", gradient: "from-purple-500 to-purple-600", barColor: "bg-linear-to-r from-purple-400 to-purple-600", pct: globalTotal > 0 ? (totalAdmins / globalTotal) * 100 : 0 },
+    { label: "Évaluateurs", value: totalEvals, icon: User, iconBg: "bg-blue-50", iconColor: "text-green-600", gradient: "from-green-500 to-green-600", barColor: "bg-linear-to-r from-green-400 to-green-600", pct: globalTotal > 0 ? (totalEvals / globalTotal) * 100 : 0 },
   ];
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] px-6 py-7">
-      <AlertBanner
-        message={success}
-        type="success"
-        onDismiss={() => setSuccess(null)}
-      />
-      <AlertBanner
-        message={error}
-        type="error"
-        onDismiss={() => setError(null)}
-      />
-
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-7">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Utilisateurs
-          </h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            Gestion des comptes (ADMIN / ÉVALUATEUR / CANDIDAT)
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Utilisateurs</h1>
+          <p className="mt-0.5 text-sm text-gray-500">Gestion des comptes (ADMIN / ÉVALUATEUR / CANDIDAT)</p>
         </div>
         <div className="flex gap-2 justify-end">
           <button
-            onClick={fetchUsers}
+            onClick={() => fetchUsers()}
             disabled={loading}
             className={`px-4 py-2 rounded-4xl transition-colors cursor-pointer inline-flex items-center justify-center ${loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
             type="button"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Actualiser"
-            )}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Actualiser"}
           </button>
-          <button
-            onClick={openCreate}
-            className="items-center bg-sky-900 text-white hover:bg-sky-950 transition-colors duration-150 py-2.5 px-4 text-sm rounded-4xl cursor-pointer inline-flex gap-2"
-            type="button"
-          >
-            <UserPlus className="h-4 w-4" />
-            Ajouter
+          <button onClick={openCreate} className="items-center bg-sky-900 text-white hover:bg-sky-950 transition-colors duration-150 py-2.5 px-4 text-sm rounded-4xl cursor-pointer inline-flex gap-2" type="button">
+            <UserPlus className="h-4 w-4" />Ajouter
           </button>
         </div>
       </div>
 
-      {/* Stat cards — unified with KPI card design */}
+      {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-7">
-        {loading
-          ? [1, 2, 3].map((i) => <StatCardSkeleton key={i} />)
-          : statCards.map((card) => <StatCard key={card.label} {...card} />)}
+        {loading ? [1, 2, 3].map((i) => <StatCardSkeleton key={i} />) : statCards.map((card) => <StatCard key={card.label} {...card} />)}
       </div>
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div className="flex flex-wrap gap-2 w-full sm:max-w-2xl">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[160px]">
+          <div className="relative flex-1 min-w-40">
             <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               value={q}
@@ -480,368 +520,45 @@ const AdminUsers = () => {
               className="w-full rounded-md border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm outline-none transition-all focus:ring-2 focus:ring-sky-100 focus:border-sky-400 placeholder:text-gray-400"
             />
           </div>
-
-          {/* Role filter */}
-          <StyledSelect
-            value={roleFilter}
-            onChange={setRoleFilter}
-            options={ROLE_OPTIONS}
-            className="w-40"
-          />
-
-          {/* Sort filter */}
+          <StyledSelect value={roleFilter} onChange={setRoleFilter} options={ROLE_OPTIONS} className="w-40" />
           <div className="relative">
-            <StyledSelect
-              value={sortBy}
-              onChange={setSortBy}
-              options={SORT_OPTIONS}
-              className="w-40"
-            />
+            <StyledSelect value={sortBy} onChange={setSortBy} options={SORT_OPTIONS} className="w-40" />
           </div>
         </div>
-        <div className="text-sm text-gray-500 flex-shrink-0">
-          {loading ? "Chargement..." : `${filtered.length} utilisateur(s)`}
+        <div className="text-sm text-gray-500 shrink-0">
+          {loading ? "Chargement..." : `${total} utilisateur(s)`}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-gray-100">
-            <thead className="bg-gray-50/80">
-              <tr>
-                {["Utilisateur", "Contact", "Identité", "Rôle", "Actions"].map(
-                  (h, i) => (
-                    <th
-                      key={h}
-                      className={`px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-400 ${i === 4 ? "text-center" : ""}`}
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10">
-                    <div className="h-32 rounded-xl bg-gray-100 animate-pulse" />
-                  </td>
-                </tr>
-              ) : paged.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-14 text-center">
-                    <div className="flex flex-col items-center gap-2 text-gray-400">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
-                        <User className="h-5 w-5" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-500">
-                        Aucun utilisateur trouvé.
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paged.map((u) => (
-                  <tr
-                    key={u.id}
-                    className="hover:bg-gray-50/60 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-100 flex items-center justify-center ring-1 ring-gray-200">
-                          <User className="h-4 w-4 text-gray-500" />
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-semibold text-gray-900">
-                            {u.nom} {u.prenom}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            ID: {u.id}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-700 flex items-center gap-1.5">
-                        <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                        {u.email}
-                      </div>
-                      <div className="text-sm text-gray-400 flex items-center gap-1.5 mt-1">
-                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
-                        {u.phone_num}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      <span className="text-gray-400">CIN: </span>
-                      <span className="font-medium">{u.cin}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold ${roleBadgeClass(u.role)}`}
-                      >
-                        {(u.role || "CANDIDAT").toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => openEdit(u)}
-                          className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Modifier"
-                          type="button"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setDeleteConfirm({ show: true, user: u })
-                          }
-                          className="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Supprimer"
-                          type="button"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <UserTable users={users} loading={loading} onEdit={openEdit} onDelete={setDeleteTarget} />
 
       <Pagination
-        page={safePage}
+        page={page}
         totalPages={totalPages}
-        totalItems={filtered.length}
+        totalItems={total}
         pageSize={PAGE_SIZE}
         onPrev={() => setPage((p) => Math.max(1, p - 1))}
         onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
       />
 
-      {/* Create / Edit Modal */}
-      {open && (
-        <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50"
-          onClick={closeModal}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 animate-in fade-in-0 zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6 border-b border-gray-100 flex items-start justify-between">
-              <div>
-                <h3 className="text-base font-bold text-gray-900">
-                  {mode === "create"
-                    ? "Ajouter un utilisateur"
-                    : "Modifier l'utilisateur"}
-                </h3>
-                <p className="text-sm text-gray-400 mt-0.5">
-                  {mode === "create"
-                    ? "Créer un nouveau compte."
-                    : "Mettre à jour les informations."}
-                </p>
-              </div>
-              <button
-                onClick={closeModal}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer"
-                type="button"
-                disabled={saving}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <UserFormModal
+        open={open}
+        mode={mode}
+        form={form}
+        setForm={setForm}
+        formError={formError}
+        setFormError={setFormError}
+        saving={saving}
+        onClose={closeModal}
+        onSave={save}
+      />
 
-            <div className="p-6 space-y-5">
-              {formError && (
-                <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>{formError}</span>
-                  </div>
-                  <button onClick={() => setFormError(null)} type="button">
-                    <X className="h-4 w-4 opacity-60 hover:opacity-100" />
-                  </button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  ["nom", "Nom"],
-                  ["prenom", "Prénom"],
-                ].map(([k, label]) => (
-                  <div key={k}>
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
-                      {label}
-                    </label>
-                    <input
-                      value={form[k]}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, [k]: e.target.value }))
-                      }
-                      className={`${inputBase} mt-0`}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm((p) => ({ ...p, email: e.target.value }))
-                  }
-                  className={inputBase}
-                />
-              </div>
-
-              {mode === "create" && (
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
-                    Mot de passe
-                  </label>
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={(e) =>
-                      setForm((p) => ({ ...p, password: e.target.value }))
-                    }
-                    className={inputBase}
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  ["cin", "CIN"],
-                  ["phone_num", "Téléphone"],
-                ].map(([k, label]) => (
-                  <div key={k}>
-                    <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
-                      {label}
-                    </label>
-                    <input
-                      value={form[k]}
-                      onChange={(e) =>
-                        setForm((p) => ({ ...p, [k]: e.target.value }))
-                      }
-                      className={`${inputBase} mt-0`}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
-                  Rôle
-                </label>
-                <StyledSelect
-                  value={form.role}
-                  onChange={(val) => setForm((p) => ({ ...p, role: val }))}
-                  options={ROLE_FORM_OPTIONS}
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-gray-100 flex items-center justify-end gap-3">
-              <button
-                onClick={closeModal}
-                disabled={saving}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-4xl transition-colors cursor-pointer"
-                type="button"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={save}
-                disabled={saving}
-                className="px-4 py-2 bg-sky-900 hover:bg-sky-950 text-white rounded-4xl transition-colors flex items-center gap-2 cursor-pointer"
-                type="button"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="animate-spin h-4 w-4" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  "Enregistrer"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirm */}
-      {deleteConfirm.show && (
-        <div
-          className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50"
-          onClick={() =>
-            !isDeleting && setDeleteConfirm({ show: false, user: null })
-          }
-          role="dialog"
-          aria-modal="true"
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 mx-4 animate-in fade-in-0 zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-2xl bg-red-50 mb-4">
-                <AlertCircle className="h-6 w-6 text-red-500" />
-              </div>
-              <h3 className="text-base font-bold text-gray-900 mb-2">
-                Confirmer la suppression
-              </h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Voulez-vous vraiment supprimer{" "}
-                <span className="font-semibold text-gray-900">
-                  {deleteConfirm.user?.nom} {deleteConfirm.user?.prenom}
-                </span>{" "}
-                ? Cette action est irréversible.
-              </p>
-            </div>
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setDeleteConfirm({ show: false, user: null })}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-4xl transition-colors cursor-pointer"
-                type="button"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-4xl transition-colors flex items-center gap-2 cursor-pointer"
-                type="button"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="animate-spin h-4 w-4" />
-                    Suppression...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4" />
-                    Supprimer
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DeleteConfirmModal
+        user={deleteTarget}
+        isDeleting={isDeleting}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 };

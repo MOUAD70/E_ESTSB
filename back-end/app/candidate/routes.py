@@ -2,29 +2,21 @@ import logging
 import os
 
 from flask import Blueprint, jsonify, request, current_app
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity
 
 from app import db
 from app.models.user_models import Candidat, Documents, Eligibilite, Filiere, FinalScore
+from app.utils.decorators import role_required
 
 logger = logging.getLogger(__name__)
 
 candidate_bp = Blueprint("candidate", __name__, url_prefix="/api/candidate")
 
 
-def _require_candidat():
-    """Return the current user's ID or an error response tuple."""
-    if (get_jwt().get("role") or "").upper() != "CANDIDAT":
-        return None, (jsonify(msg="Accès refusé"), 403)
-    return get_jwt_identity(), None
-
-
 @candidate_bp.route("/apply", methods=["POST"])
-@jwt_required()
+@role_required('CANDIDAT')
 def apply():
-    user_id, err = _require_candidat()
-    if err:
-        return err
+    user_id = get_jwt_identity()
 
     data = request.get_json() or {}
 
@@ -60,11 +52,9 @@ def apply():
 
 
 @candidate_bp.route("/eligible-programs", methods=["GET"])
-@jwt_required()
+@role_required('CANDIDAT')
 def eligible_programs():
-    user_id, err = _require_candidat()
-    if err:
-        return err
+    user_id = get_jwt_identity()
 
     candidat = Candidat.query.filter_by(user_id=user_id).first()
     if not candidat:
@@ -84,11 +74,9 @@ def eligible_programs():
 
 
 @candidate_bp.route("/select-filiere", methods=["POST"])
-@jwt_required()
+@role_required('CANDIDAT')
 def select_filiere():
-    user_id, err = _require_candidat()
-    if err:
-        return err
+    user_id = get_jwt_identity()
 
     data = request.get_json() or {}
     candidat = Candidat.query.filter_by(user_id=user_id).first()
@@ -113,11 +101,9 @@ def select_filiere():
 
 
 @candidate_bp.route("/upload-docs", methods=["POST"])
-@jwt_required()
+@role_required('CANDIDAT')
 def upload_docs():
-    user_id, err = _require_candidat()
-    if err:
-        return err
+    user_id = get_jwt_identity()
 
     candidat = Candidat.query.filter_by(user_id=user_id).first()
     if not candidat:
@@ -154,11 +140,9 @@ def upload_docs():
 
 
 @candidate_bp.route("/result", methods=["GET"])
-@jwt_required()
+@role_required('CANDIDAT')
 def view_result():
-    user_id, err = _require_candidat()
-    if err:
-        return err
+    user_id = get_jwt_identity()
 
     candidat = Candidat.query.filter_by(user_id=user_id).first()
     if not candidat:
@@ -177,11 +161,9 @@ def view_result():
 
 
 @candidate_bp.route("/profile", methods=["GET"])
-@jwt_required()
+@role_required('CANDIDAT')
 def get_profile():
-    user_id, err = _require_candidat()
-    if err:
-        return err
+    user_id = get_jwt_identity()
 
     candidat = Candidat.query.filter_by(user_id=user_id).first()
     if not candidat:

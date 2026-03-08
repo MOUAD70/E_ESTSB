@@ -7,7 +7,7 @@ export function FlashProvider({ children }) {
   const [message, setMessage] = useState(null);
 
   const flash = (msg, type = "success", duration = 4000) => {
-    setMessage({ msg, type });
+    setMessage({ msg, type, duration });
   };
 
   const clearFlash = () => {

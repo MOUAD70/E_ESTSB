@@ -1,11 +1,9 @@
 import logging
 import re
-from functools import wraps
 
 import pandas as pd
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt, get_jwt_identity, jwt_required, verify_jwt_in_request
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 
 from app import db
@@ -15,6 +13,7 @@ from app.models.user_models import (
     Filiere, NoteEvaluateur, Role, ScoreAI, User,
 )
 from app.services.ml_service import get_pipeline
+from app.utils.decorators import role_required
 from app.utils.helpers import hash_password
 
 logger = logging.getLogger(__name__)
@@ -22,24 +21,13 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
 
-def admin_only(fn):
-    """Decorator: require a valid JWT with role == ADMIN."""
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        verify_jwt_in_request()
-        if (get_jwt().get("role") or "").upper() != "ADMIN":
-            return jsonify(msg="Accès réservé à l'administrateur"), 403
-        return fn(*args, **kwargs)
-    return wrapper
-
 
 # ---------------------------------------------------------------------------
 # AI scoring
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/ai/score", methods=["POST"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def admin_ai_score():
     filiere_name_by_id = {f.id: f.nom_filiere for f in Filiere.query.all()}
     candidates = Candidat.query.filter(Candidat.filiere_id.isnot(None)).all()
@@ -111,8 +99,7 @@ def admin_ai_score():
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/final-scores/compute", methods=["POST"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def compute_final_scores():
     # Read weights from GlobalSettings; fall back to 60/40 if not yet configured
     settings = GlobalSettings.query.first()
@@ -196,16 +183,71 @@ def compute_final_scores():
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/users", methods=["GET"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def get_users():
-    users = User.query.all()
-    return jsonify([_user_dict(u) for u in users]), 200
+    page        = request.args.get("page", 1, type=int)
+    per_page    = request.args.get("per_page", 8, type=int)
+    q           = request.args.get("q", "", type=str).strip().lower()
+    role_filter = request.args.get("role", "", type=str).strip().upper()
+    sort_by     = request.args.get("sort_by", "default", type=str)
+
+    query = User.query
+
+    if q:
+        query = query.filter(
+            or_(
+                User.nom.ilike(f"%{q}%"),
+                User.prenom.ilike(f"%{q}%"),
+                User.email.ilike(f"%{q}%"),
+                User.cin.ilike(f"%{q}%"),
+                User.phone_num.ilike(f"%{q}%"),
+            )
+        )
+
+    if role_filter and role_filter != "ALL":
+        role_obj = Role.query.filter_by(role_name=role_filter).first()
+        if role_obj:
+            query = query.filter(User.role_id == role_obj.id)
+        else:
+            return jsonify(users=[], total=0, global_total=0, total_admins=0,
+                           total_evals=0, page=page, per_page=per_page, pages=0), 200
+
+    if sort_by == "newest":
+        query = query.order_by(User.id.desc())
+    else:
+        query = query.order_by(User.id.asc())
+
+    # Global counts — always unfiltered, used for stat cards
+    global_total = User.query.count()
+    total_admins = (
+        db.session.query(func.count(User.id))
+        .join(Role, Role.id == User.role_id)
+        .filter(Role.role_name == "ADMIN")
+        .scalar() or 0
+    )
+    total_evals = (
+        db.session.query(func.count(User.id))
+        .join(Role, Role.id == User.role_id)
+        .filter(Role.role_name == "EVALUATEUR")
+        .scalar() or 0
+    )
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    return jsonify(
+        users=[_user_dict(u) for u in pagination.items],
+        total=pagination.total,
+        global_total=global_total,
+        total_admins=total_admins,
+        total_evals=total_evals,
+        page=pagination.page,
+        per_page=pagination.per_page,
+        pages=pagination.pages,
+    ), 200
 
 
 @admin_bp.route("/users/<int:user_id>", methods=["GET"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def get_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
@@ -214,8 +256,7 @@ def get_user(user_id):
 
 
 @admin_bp.route("/users", methods=["POST"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def create_user():
     data = request.get_json() or {}
 
@@ -258,8 +299,7 @@ def create_user():
 
 
 @admin_bp.route("/users/<int:user_id>", methods=["PUT"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def update_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
@@ -323,8 +363,7 @@ def update_user(user_id):
 
 
 @admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def delete_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
@@ -344,8 +383,7 @@ def delete_user(user_id):
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/stats/overview", methods=["GET"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def stats_overview():
     return jsonify({
         "total_users": User.query.count(),
@@ -357,8 +395,7 @@ def stats_overview():
 
 
 @admin_bp.route("/stats/filieres", methods=["GET"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def stats_filieres():
     results = (
         db.session.query(
@@ -386,8 +423,7 @@ def stats_filieres():
 
 
 @admin_bp.route("/final-scores", methods=["GET"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def get_final_scores():
     rows = (
         db.session.query(
@@ -433,8 +469,7 @@ def get_final_scores():
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/formule", methods=["GET"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def get_global_formule():
     row = GlobalSettings.query.first()
     if not row:
@@ -445,8 +480,7 @@ def get_global_formule():
 
 
 @admin_bp.route("/formule", methods=["PUT"])
-@jwt_required()
-@admin_only
+@role_required('ADMIN')
 def update_global_formule():
     data = request.get_json() or {}
     try:

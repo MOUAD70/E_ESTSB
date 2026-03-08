@@ -21,8 +21,8 @@ export const services = {
       const { data } = await axiosClient.get("/admin/stats/filieres");
       return data;
     },
-    getUsers: async () => {
-      const { data } = await axiosClient.get("/admin/users");
+    getUsers: async (params = {}) => {
+      const { data } = await axiosClient.get("/admin/users", { params });
       return data;
     },
     getUser: async (id) => {

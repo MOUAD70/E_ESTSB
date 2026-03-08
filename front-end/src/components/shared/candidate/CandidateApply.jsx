@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { services } from "@/utils/services";
 import { BadgeCheck, Loader2, User, ChevronDown, Check } from "lucide-react";
-import { AlertBanner } from "@/components/shared/global/AlertBanner";
-import { useAlert } from "@/hooks/useAlert";
+import { useFlash } from "@/context/FlashContext";
 
 /* ─────────────────────────────────────────────
    Logic constants — 100% UNCHANGED
@@ -263,12 +262,11 @@ export default function CandidateApply() {
   const [locked, setLocked] = useState(false);
   const [lockedMsg, setLockedMsg] = useState(null);
   const [checking, setChecking] = useState(true);
-  const { success, error, setSuccess, setError, clearAll } = useAlert();
+  const { flash } = useFlash();
 
   useEffect(() => {
     const checkProfile = async () => {
       setChecking(true);
-      clearAll();
       try {
         const profile = await services.candidate.getProfile();
         if (profile) {
@@ -279,9 +277,7 @@ export default function CandidateApply() {
         }
       } catch (err) {
         if (err?.response?.status !== 404) {
-          setError(
-            err?.response?.data?.msg || "Erreur lors du chargement du profil",
-          );
+          flash(err?.response?.data?.msg || "Erreur lors du chargement du profil", "error");
         }
       } finally {
         setChecking(false);
@@ -295,11 +291,10 @@ export default function CandidateApply() {
   const onSelect = (k) => (val) => setForm((p) => ({ ...p, [k]: val }));
 
   const submit = async () => {
-    clearAll();
     const required = Object.keys(FIELD_LABELS);
     for (const f of required) {
       if (!String(form[f] ?? "").trim()) {
-        setError(`${FIELD_LABELS[f]} est requis`);
+        flash(`${FIELD_LABELS[f]} est requis`, "error");
         return;
       }
     }
@@ -317,8 +312,10 @@ export default function CandidateApply() {
         m_s4: Number(form.m_s4),
       };
       const res = await services.candidate.apply(payload);
-      setSuccess(res?.msg || "Profil académique enregistré");
-      setTimeout(() => setSuccess(null), 3000);
+      const successMsg = res?.msg || "Profil académique enregistré avec succès.";
+      flash(successMsg, "success");
+      setLockedMsg(successMsg);
+      setLocked(true);
     } catch (err) {
       const msg = err?.response?.data?.msg || err.message || "Erreur";
       if (
@@ -328,7 +325,7 @@ export default function CandidateApply() {
         setLocked(true);
         setLockedMsg(msg);
       } else {
-        setError(msg);
+        flash(msg, "error");
       }
     } finally {
       setSaving(false);
@@ -340,17 +337,6 @@ export default function CandidateApply() {
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] px-6 py-7">
-      <AlertBanner
-        message={success}
-        type="success"
-        onDismiss={() => setSuccess(null)}
-      />
-      <AlertBanner
-        message={error}
-        type="error"
-        onDismiss={() => setError(null)}
-      />
-
       {/* ── Page header ── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-7">
         <div>
@@ -476,10 +462,7 @@ export default function CandidateApply() {
           {/* ── Actions ── */}
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
             <button
-              onClick={() => {
-                setForm(emptyForm);
-                clearAll();
-              }}
+              onClick={() => setForm(emptyForm)}
               disabled={saving}
               className={`px-4 py-2 rounded-4xl transition-colors cursor-pointer text-sm font-medium ${
                 saving

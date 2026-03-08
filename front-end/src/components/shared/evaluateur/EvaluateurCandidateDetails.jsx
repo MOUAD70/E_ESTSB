@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { services } from "@/utils/services";
 import { Input } from "@/components/ui/input";
-import { AlertBanner } from "@/components/shared/global/AlertBanner";
-import { useAlert } from "@/hooks/useAlert";
+import { useFlash } from "@/context/FlashContext";
 import {
   Loader2,
   ArrowLeft,
@@ -135,20 +134,20 @@ export default function EvaluateurCandidateDetails() {
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const { success, error, setSuccess, setError } = useAlert();
+  const [loadError, setLoadError] = useState(null);
+  const { flash } = useFlash();
 
   const fetchRow = async () => {
     setLoading(true);
-    setSuccess(null);
-    setError(null);
+    setLoadError(null);
     try {
       const data = await services.evaluateur.getCandidate(id);
       setRow(data);
       setNote(typeof data?.my_note === "number" ? String(data.my_note) : "");
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Erreur de chargement",
-      );
+      const msg = err?.response?.data?.msg || err.message || "Erreur de chargement";
+      flash(msg, "error");
+      setLoadError(msg);
     } finally {
       setLoading(false);
     }
@@ -165,11 +164,9 @@ export default function EvaluateurCandidateDetails() {
   }, [saving, row, note]);
 
   const saveNote = async () => {
-    setError(null);
-    setSuccess(null);
     const n = Number(note);
     if (Number.isNaN(n) || n < 0 || n > 20) {
-      setError("La note doit être un nombre entre 0 et 20.");
+      flash("La note doit être un nombre entre 0 et 20.", "error");
       return;
     }
     setSaving(true);
@@ -179,17 +176,14 @@ export default function EvaluateurCandidateDetails() {
           candidat_id: row.candidat_id,
           note_eval: n,
         });
-        setSuccess("Note enregistrée.");
+        flash("Note enregistrée.", "success");
       } else {
         await services.evaluateur.updateNote(row.candidat_id, { note_eval: n });
-        setSuccess("Note mise à jour.");
+        flash("Note mise à jour.", "success");
       }
       await fetchRow();
-      setTimeout(() => setSuccess(null), 2500);
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Erreur d'enregistrement",
-      );
+      flash(err?.response?.data?.msg || err.message || "Erreur d'enregistrement", "error");
     } finally {
       setSaving(false);
     }
@@ -214,7 +208,7 @@ export default function EvaluateurCandidateDetails() {
                     Candidat introuvable
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    {error ||
+                    {loadError ||
                       "Ce candidat n'existe pas ou n'est plus disponible."}
                   </p>
                   <div className="mt-5">
@@ -264,17 +258,6 @@ export default function EvaluateurCandidateDetails() {
           )}
         </button>
       </div>
-
-      <AlertBanner
-        message={success}
-        type="success"
-        onDismiss={() => setSuccess(null)}
-      />
-      <AlertBanner
-        message={error}
-        type="error"
-        onDismiss={() => setError(null)}
-      />
 
       <div className="space-y-5">
         {/* ── 1. Identity card ── */}

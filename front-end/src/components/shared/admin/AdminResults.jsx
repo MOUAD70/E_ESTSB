@@ -10,10 +10,8 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import { AlertBanner } from "@/components/shared/global/AlertBanner";
 import { useFlash } from "@/context/FlashContext";
 import { Pagination } from "@/components/shared/global/Pagination";
-import { useAlert } from "@/hooks/useAlert";
 
 const PAGE_SIZE = 10;
 
@@ -200,7 +198,6 @@ function ScoreCardSkeleton() {
 const AdminResults = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { success, error, setSuccess, setError } = useAlert();
   const { flash } = useFlash();
 
   const [q, setQ] = useState("");
@@ -216,9 +213,7 @@ const AdminResults = () => {
     try {
       setRows(await services.admin.getFinalScores());
     } catch (err) {
-      setError(
-        err?.response?.data?.msg || err.message || "Erreur de chargement",
-      );
+      flash(err?.response?.data?.msg || err.message || "Erreur de chargement", "error");
     } finally {
       setLoading(false);
     }
@@ -317,18 +312,12 @@ const AdminResults = () => {
 
   const runAiScore = async () => {
     setAiRunning(true);
-    setError(null);
-    setSuccess(null);
     try {
       const res = await services.admin.runAiScoring();
-      const successMsg = res?.msg || "Scoring IA terminé.";
-      setSuccess(successMsg);
-      flash(successMsg, "success");
+      flash(res?.msg || "Scoring IA terminé.", "success");
       await loadResults();
     } catch (err) {
-      const errorMsg = err?.response?.data?.msg || err.message || "Erreur scoring IA";
-      setError(errorMsg);
-      flash(errorMsg, "error");
+      flash(err?.response?.data?.msg || err.message || "Erreur scoring IA", "error");
     } finally {
       setAiRunning(false);
     }
@@ -336,18 +325,12 @@ const AdminResults = () => {
 
   const runFinalScore = async () => {
     setFinalRunning(true);
-    setError(null);
-    setSuccess(null);
     try {
       const res = await services.admin.computeFinalScores();
-      const successMsg = res?.msg || "Scores finaux calculés.";
-      setSuccess(successMsg);
-      flash(successMsg, "success");
+      flash(res?.msg || "Scores finaux calculés.", "success");
       await loadResults();
     } catch (err) {
-      const errorMsg = err?.response?.data?.msg || err.message || "Erreur scores finaux";
-      setError(errorMsg);
-      flash(errorMsg, "error");
+      flash(err?.response?.data?.msg || err.message || "Erreur scores finaux", "error");
     } finally {
       setFinalRunning(false);
     }
@@ -395,17 +378,6 @@ const AdminResults = () => {
 
   return (
     <div className="min-h-screen bg-[#f7f8fa] px-6 py-7">
-      <AlertBanner
-        message={success}
-        type="success"
-        onDismiss={() => setSuccess(null)}
-      />
-      <AlertBanner
-        message={error}
-        type="error"
-        onDismiss={() => setError(null)}
-      />
-
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-7">
         <div>
