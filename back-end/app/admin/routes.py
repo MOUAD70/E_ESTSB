@@ -29,11 +29,21 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 @admin_bp.route("/ai/score", methods=["POST"])
 @role_required('ADMIN')
 def admin_ai_score():
+    """Score all candidates using RandomForestRegressor model.
+    
+    Model predicts student performance score (0-20 scale) based on:
+    - Diploma type and source branch
+    - BAC type and average
+    - Semester grades (m_s1, m_s2, m_s3, m_s4)
+    - Selected filiere
+    
+    Results stored in ScoreAI table.
+    """
     filiere_name_by_id = {f.id: f.nom_filiere for f in Filiere.query.all()}
     candidates = Candidat.query.filter(Candidat.filiere_id.isnot(None)).all()
 
     pipe = get_pipeline()
-    scored = missing_fields = avg_lt_10 = 0
+    scored = missing_fields = 0
 
     existing_ai = {
         r.candidat_id: r
@@ -50,29 +60,28 @@ def admin_ai_score():
             missing_fields += 1
             continue
 
-        avg_sem = (c.m_s1 + c.m_s2 + c.m_s3 + c.m_s4) / 4
+        # All candidates can be scored (no avg < 10 rejection)
+        filiere_name = filiere_name_by_id.get(c.filiere_id)
+        if not filiere_name:
+            missing_fields += 1
+            continue
 
-        if avg_sem < 10:
-            note_ai = 0.0
-            avg_lt_10 += 1
-        else:
-            filiere_name = filiere_name_by_id.get(c.filiere_id)
-            if not filiere_name:
-                missing_fields += 1
-                continue
-
-            X = pd.DataFrame([{
-                "t_diplome": c.t_diplome,
-                "branche_diplome": c.branche_diplome,
-                "bac_type": c.bac_type,
-                "filiere": filiere_name,
-                "moy_bac": float(c.moy_bac) if c.moy_bac is not None else 0.0,
-                "m_s1": float(c.m_s1),
-                "m_s2": float(c.m_s2),
-                "m_s3": float(c.m_s3),
-                "m_s4": float(c.m_s4),
-            }])
-            note_ai = round(float(pipe.predict_proba(X)[0][1]) * 20, 2)
+        X = pd.DataFrame([{
+            "t_diplome": c.t_diplome,
+            "branche_diplome": c.branche_diplome,
+            "bac_type": c.bac_type,
+            "filiere": filiere_name,
+            "moy_bac": float(c.moy_bac) if c.moy_bac is not None else 0.0,
+            "m_s1": float(c.m_s1),
+            "m_s2": float(c.m_s2),
+            "m_s3": float(c.m_s3),
+            "m_s4": float(c.m_s4),
+        }])
+        
+        # Use regressor to predict student performance score (0-20 scale)
+        predicted_score = pipe.predict(X)[0]
+        # Clamp to valid range [0, 20]
+        note_ai = round(max(0.0, min(20.0, predicted_score)), 2)
 
         row = existing_ai.get(c.id)
         if not row:
@@ -85,12 +94,12 @@ def admin_ai_score():
         scored += 1
 
     db.session.commit()
-    logger.info("AI scoring: scored=%d, skipped=%d, forced_zero=%d", scored, missing_fields, avg_lt_10)
+    logger.info("AI scoring: scored=%d, skipped=%d", scored, missing_fields)
     return jsonify(
-        msg="AI scoring terminé",
+        msg="AI scoring: All candidates scored using RandomForestRegressor",
         scored=scored,
         skipped_missing_fields=missing_fields,
-        forced_zero_avg_lt_10=avg_lt_10,
+        note="Model now predicts student performance (0-20) instead of selection probability"
     ), 200
 
 

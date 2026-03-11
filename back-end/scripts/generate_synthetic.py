@@ -115,7 +115,7 @@ for _ in range(num_samples):
         "m_s2": m_s2,
         "m_s3": m_s3,
         "m_s4": m_s4,
-        "selected": selected
+        "avg_semester_score": avg_sem  # Target for regression model
     })
 
 df = pd.DataFrame(rows)
@@ -129,4 +129,8 @@ df.to_csv(csv_path, index=False)
 print(f"CSV created: {csv_path}")
 print(df.head())
 print(f"Forced rejects (avg<10): {forced_reject}/{num_samples} = {forced_reject/num_samples:.2%}")
-print(f"Selected overall: {selected_count}/{num_samples} = {selected_count/num_samples:.2%}")
+print(f"Average semester score statistics:")
+print(f"  Mean: {df['avg_semester_score'].mean():.2f}")
+print(f"  Std: {df['avg_semester_score'].std():.2f}")
+print(f"  Min: {df['avg_semester_score'].min():.2f}")
+print(f"  Max: {df['avg_semester_score'].max():.2f}")
