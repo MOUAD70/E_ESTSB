@@ -7,6 +7,7 @@ import {
   IconClipboardCheck,
   IconUpload,
   IconAward,
+  IconAdjustmentsAlt,
 } from "@tabler/icons-react";
 import { NavLink } from "react-router-dom";
 import { useContext, useMemo } from "react";
@@ -31,6 +32,7 @@ import {
   CANDIDAT_APPLY_ROUTE,
   CANDIDATE_PROGRAMS_ROUTE,
   CANDIDATE_UPLOAD_DOCS_ROUTE,
+  CANDIDATE_STATUS_ROUTE,
   CANDIDATE_RESULT_ROUTE,
   EVALUATEUR_CANDIDATES_ROUTE,
 } from "../../../routes/Routes";
@@ -47,6 +49,7 @@ const adminNav = [
 const candidateNav = [
   { title: "Mon dossier", url: CANDIDAT_APPLY_ROUTE, icon: IconFileText },
   { title: "Programmes éligibles", url: CANDIDATE_PROGRAMS_ROUTE, icon: IconClipboardCheck },
+  { title: "Statut", url: CANDIDATE_STATUS_ROUTE, icon: IconFileAnalytics },
   { title: "Documents", url: CANDIDATE_UPLOAD_DOCS_ROUTE, icon: IconUpload },
   { title: "Résultat", url: CANDIDATE_RESULT_ROUTE, icon: IconAward },
 ];

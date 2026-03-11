@@ -17,6 +17,7 @@ import {
   ADMIN_FINAL_SCORES_ROUTE,
   CANDIDATE_PROGRAMS_ROUTE,
   CANDIDATE_UPLOAD_DOCS_ROUTE,
+  CANDIDATE_STATUS_ROUTE,
   CANDIDATE_RESULT_ROUTE,
   EVALUATEUR_CANDIDATES_ROUTE,
   EVALUATEUR_CANDIDATE_DETAILS_ROUTE,
@@ -31,6 +32,7 @@ import Results from "../pages/common/admin/Results";
 import Apply from "../pages/common/candidate/Apply";
 import CandidateLayout from "../layouts/CandidateLayout";
 import Programs from "../pages/common/candidate/Programs";
+import Status from "../pages/common/candidate/Status";
 import AddDocuments from "../pages/common/candidate/AddDocuments";
 import CResults from "../pages/common/candidate/CResults";
 import EvaluateurLayout from "../layouts/EvaluateurLayout";
@@ -115,6 +117,10 @@ export const router = createBrowserRouter([
       {
         path: CANDIDATE_PROGRAMS_ROUTE,
         element: <Programs />,
+      },
+      {
+        path: CANDIDATE_STATUS_ROUTE,
+        element: <Status />,
       },
       {
         path: CANDIDATE_UPLOAD_DOCS_ROUTE,

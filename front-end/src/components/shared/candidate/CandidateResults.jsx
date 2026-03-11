@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { AlertBanner } from "@/components/shared/global/AlertBanner";
 import { useAlert } from "@/hooks/useAlert";
+import { CandidateStatusTimeline } from "./CandidateStatusTimeline";
 
 /* ─────────────────────────────────────────────
    Design tokens — unchanged from admin pages

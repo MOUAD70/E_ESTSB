@@ -23,4 +23,5 @@ export const EVALUATEUR_CANDIDATE_DETAILS_ROUTE = "/evaluateur/candidates/:id";
 export const CANDIDAT_APPLY_ROUTE = "/candidate/apply";
 export const CANDIDATE_PROGRAMS_ROUTE = "/candidate/eligible-programs";
 export const CANDIDATE_UPLOAD_DOCS_ROUTE = "candidate/upload-docs";
+export const CANDIDATE_STATUS_ROUTE = "/candidate/status";
 export const CANDIDATE_RESULT_ROUTE = "/candidate/result";
